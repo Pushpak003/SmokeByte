@@ -10,7 +10,12 @@ export const convertImage = async(req, res) =>{
         const filePath = req.file.path;
 
         const outputName = `converted-${Date.now()}.png`;
-        const outputPath = path.join("public","uploads", outputName);
+        const outputDir = path.join(process.cwd(),"public","uploads");
+        const outputPath = path.join(outputDir, outputName);
+
+        if(!fs.existsSync(outputDir)){
+            fs.mkdirSync(outputDir, {recursive: true});
+        }
 
         await sharp(filePath).png().toFile(outputPath);
 
@@ -18,7 +23,8 @@ export const convertImage = async(req, res) =>{
             filename: req.file.originalname,
             filetype: req.file.mimetype,
             filesize:req.file.size,
-            user_id: userID
+            user_id: userID,
+            converted_file_url:`/uploads/${outputName}`
         });
         await ConversionLog.create({
             file_id: fileRecord.id,

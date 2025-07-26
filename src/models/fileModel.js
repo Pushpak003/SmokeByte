@@ -27,7 +27,7 @@ const File = sequelize.define("File", {
 }, {
     tableName: 'files',
     timestamps: true,
-    createdAT: 'created_at',
+    createdAt: 'created_at',
     updatedAt: false
 });
 
