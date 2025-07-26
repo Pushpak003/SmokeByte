@@ -1,7 +1,7 @@
 import express from "express";
 import {authMiddleware} from "../middlewares/authMiddleware.js";
 import {upload} from "../middlewares/uploadMiddleware.js";
-import { convertImage } from "../controllers/conversionController.js";
+import { convertImage } from "../controllers/imageconversionController.js";
 
 const router = express.Router();
 

@@ -25,10 +25,10 @@ export const convertImage = async(req, res) =>{
             fs.mkdirSync(outputDir, {recursive: true});
         }
         const image = sharp(filePath);
-        if(targetFormat === "png") await image.png().toFile(outputPath);
-        if(targetFormat === "jpeg") await image.jpeg().toFile(outputPath);
-        if(targetFormat === "jpg") await image.jpg().toFile(outputPath);
-        if(targetFormat === "webp") await image.webp().toFile(outputPath);
+        if(extension === "png") await image.png().toFile(outputPath);
+        if(extension === "jpeg") await image.jpeg().toFile(outputPath);
+        if(extension === "jpg") await image.jpg().toFile(outputPath);
+        if(extension === "webp") await image.webp().toFile(outputPath);
 
 
         const fileRecord = await File.create({
