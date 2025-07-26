@@ -1,9 +1,9 @@
-import {DataTypes, Datatypes} from 'sequelize';
+import {DataTypes} from 'sequelize';
 import sequelize from '../config/db.js';
 import File from './fileModel.js';
 
-const ConversionLog = sequelize.defiine("ConversionLog",{
-    id:{type: DataTypes.INTEGER, primaryKey: true,authoInrement: true},
+const ConversionLog = sequelize.define("ConversionLog",{
+    id:{type: DataTypes.INTEGER, primaryKey: true,autoIncrement: true},
     file_id:{type: DataTypes.INTEGER, allowNull: false},
     target_format:{type: DataTypes.STRING(20), allowNull: false},
     status:{type: DataTypes.STRING(20),defaultValue:"completed"},

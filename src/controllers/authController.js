@@ -22,14 +22,14 @@ export const register = async(req,res) => {
 };
 
 export const login = async(req, res) => {
-    const {uesrname,password}= req.body;
+    const {username,password}= req.body;
     try{
-        const user = await User.findOne({where: username});
-        if(!user)  return res.stauts(401).json({message: "Invalid Credentials"});
+        const user = await User.findOne({ where: { username: username } });
+        if(!user)  return res.status(401).json({message: "Invalid Credentials"});
 
         const match = await bcrypt.compare(password, user.password);
-        if(!match) return res.status(401).json({messsage:"Invalid Credentials"});
-        const token = generateToken({id:user.id,useernamae: user.username});
+        if(!match) return res.status(401).json({message:"Invalid Credentials"});
+        const token = generateToken({id:user.id,username: user.username});
         res.status(200).json({token,user:{id:user.id,username:user.username}});
     }catch(err){
         res.status(500).json({message:err.message})
