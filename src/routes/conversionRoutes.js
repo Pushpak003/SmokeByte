@@ -5,6 +5,6 @@ import { convertImage } from "../controllers/conversionController.js";
 
 const router = express.Router();
 
-router.post("/image",authMiddleware, upload.single("file"),convertImage);
+router.post("/image",authMiddleware,upload.single("file"),convertImage);
 
 export default router;
