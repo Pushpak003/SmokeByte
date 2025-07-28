@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import File from '../models/File.js';
-import ConversionLog from '../models/ConversionLog.js';
+import File from '../models/fileModel.js';
+import ConversionLog from '../models/conversionLogs.js';
 import { convertDocument } from '../services/documentService.js';
 
 export const documentConversionController = async(req, res) => {
