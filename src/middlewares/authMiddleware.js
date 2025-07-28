@@ -1,6 +1,4 @@
-import jwt from "jsonwebtoken";
-import dotenv from 'dotenv';
-dotenv.config();
+import { verifyAccessToken } from './../utils/jwtUtils.js';
 
 export const authMiddleware =(req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -8,10 +6,10 @@ export const authMiddleware =(req, res, next) => {
     if(!token){ res.status(401).json({message:"NO Token "});
     }
     try{
-        const decoded = jwt.verify(token,process.env.JWT_SECRET);
+        const decoded = verifyAccessToken(token);
         req.user = decoded;
         next();
     }catch(err){
-       res.status(401).json({message:"Invalid Token"}); 
+       res.status(403).json({message:"Invalid Token"}); 
     }
  };
