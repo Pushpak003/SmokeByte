@@ -1,4 +1,4 @@
-import ffmpeg from '../config/ffmpeg';
+import ffmpeg from '../config/ffmpeg.js';
 import path from 'path';
 
 export const convertMedia = async (inputPath, outputFormat) =>{
