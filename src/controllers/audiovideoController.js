@@ -17,7 +17,7 @@ export const mediaConversionController = async(req, res) => {
         const {outputName} = await convertMedia(req.file.path,targetFormat);
         
         const fileRecord = await File.create({
-            filename:req.file.originalName,
+            filename:req.file.originalname,
             filetype:req.file.mimetype,
             filesize:req.file.size,
             user_id:userId,
