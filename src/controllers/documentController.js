@@ -9,13 +9,13 @@ export const documentConversionController = async(req, res) => {
         const userId = req.user.id;
         const targetFormat = req.body.targetFormat?.toLowerCase();
         const allowedFormats =["pdf", "txt", "odt", "doc", "docx", "html"];
-
+        const inputPath = req.file.path;
         if(!allowedFormats.includes(targetFormat)){
             return res.status(400).json({message:"Invalid target Format"});
         }
 
         const {convertedPath} = await convertDocument(inputPath, targetFormat);
-        const outputFileName = `converted-${Date.now()}.${targetFormat}}`;
+        const outputFileName = `converted-${Date.now()}.${targetFormat}`;
         const finalOutputPath = path.join("public/uploads", outputFileName);
         fs.renameSync(convertedPath, finalOutputPath);
         
@@ -23,7 +23,8 @@ export const documentConversionController = async(req, res) => {
             filename: req.file.originalname,
             filetype: req.file.mimetype,
             filesize: req.file.size,
-            user_id: userId
+            user_id: userId,
+            converted_file_url:`/uploads/${path.basename(convertedPath)}`
         });
         await ConversionLog.create({
             file_id: fileRecord.id,
