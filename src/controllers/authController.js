@@ -54,3 +54,16 @@ export const refreshToken = async(req, res) => {
         res.status(403).json({message:"Invalid Refresh Token"});
     }
 };
+export const logout = async(req, res) => {
+    const {refreshToken} = req.body;
+    if(!refreshToken) return res.status(400).json({message:"No Refresh Token Provided"});
+
+    try{
+        const decoded = verifyRefreshToken(refreshToken);
+        
+        await refreshToken.destroy({where:{token:refreshToken}});
+        res.json({message:"Logged out successfully"});
+    }catch(err){
+        res.status(403).json({message:"Invalid Refresh Token"});
+    }
+};
