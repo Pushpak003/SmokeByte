@@ -1,6 +1,6 @@
 import express from "express";
 import {authMiddleware} from "../middlewares/authMiddleware.js";
-import {upload} from "../middlewares/uploadMiddleware.js";
+import upload from "../middlewares/uploadMiddleware.js";
 import { convertImage } from "../controllers/imageconversionController.js";
 import {documentConversionController} from "../controllers/documentController.js";
 import { mediaConversionController } from "../controllers/audiovideoController.js";
