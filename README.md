@@ -56,7 +56,7 @@ server.js  →  Server entry point.
    ```bash
    npm install
    ```
-3. ** Setup .env file with variables **
+3. **Setup .env file with variables**
    ```env
    PORT=3000
    DATABASE_URL=postgres://username:password@localhost:5432/dbname
@@ -66,16 +66,16 @@ server.js  →  Server entry point.
    SUPABASE_URL=https://your-supabase-url.supabase.co
    SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
-4. ** Start Redis server locally (if not already running): **
+4. **Start Redis server locally (if not already running)6:**
    ```bash
    redis-server
    ```
-5. ** Run migrations & seed database if needed (using Sequelize CLI or custom scripts). **
-6. ** Start the queue worker in a separate terminal: **
+5. **Run migrations & seed database if needed (using Sequelize CLI or custom scripts).**
+6. **Start the queue worker in a separate terminal:**
    ```bash
    node src/jobs/worker.js
    ```
-7. ** Start the backend server: **
+7. **Start the backend server:**
    ```bash
    npm start
    ```
