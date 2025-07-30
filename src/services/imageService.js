@@ -26,5 +26,6 @@ export const convertImageFile = async(inputPath,targetFormat) => {
 
         fs.unlinkSync(inputPath);
 
-        return `/uploads/${outputName}`;
-}
+
+        return outputPath;
+};

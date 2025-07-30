@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+console.log("Upload Middleware Loaded"); 
 
 const tempDir = path.join(process.cwd(), 'src', 'temp');  // 'temp' inside src
 
@@ -33,9 +34,14 @@ const allowedTypes =[
   "image/jpeg",                                    
   "image/webp"   ];
 const fileFilter = (req,file, cb) =>{
-  if(!allowedTypes.includes(file.mimetype)) {
+    console.log("---- [Filter] File received ----");
+  console.log("Mimetype:", file.mimetype);
+  console.log("Original name:", file.originalname);
+  if(allowedTypes.includes(file.mimetype)) {
+    console.log("---- [Filter] File allowed ----");
     cb(null,true);
   }else{
+    console.log("---- [Filter] File rejected ----");
     cb(new Error("Unsupported file type"), false);
   }
 };
