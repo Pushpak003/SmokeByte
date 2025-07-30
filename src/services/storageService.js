@@ -1,18 +1,16 @@
 import supabase from "../config/supabase.js";
 import fs from "fs";
-import mime from "mime";
+import mime from "mime-types";
 
 
 export const uploadFileToSupabase = async(localFilePath, fileName) =>{
     const fileBuffer = fs.readFileSync(localFilePath);
-    const contentType = mime.getType(localFilePath) || "application/octet-stream";
+    const contentType = mime.lookup(localFilePath) || "application/octet-stream";
 
 
     
     const safeFileName = fileName.replace(/'/g, "").replace(/\s+/g, "-");
-    console.log("Bucket:", process.env.SUPABASE_BUCKET);
-    console.log("Supabase URL:", process.env.SUPABASE_URL);
-    console.log("Safe File Name:", safeFileName);
+    
 
     const {data, error} = await supabase.storage
         .from(process.env.SUPABASE_BUCKET)
