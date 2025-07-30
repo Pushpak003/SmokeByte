@@ -10,6 +10,9 @@ export const uploadFileToSupabase = async(localFilePath, fileName) =>{
 
     
     const safeFileName = fileName.replace(/'/g, "").replace(/\s+/g, "-");
+    console.log("Bucket:", process.env.SUPABASE_BUCKET);
+    console.log("Supabase URL:", process.env.SUPABASE_URL);
+    console.log("Safe File Name:", safeFileName);
 
     const {data, error} = await supabase.storage
         .from(process.env.SUPABASE_BUCKET)
@@ -25,11 +28,7 @@ export const uploadFileToSupabase = async(localFilePath, fileName) =>{
                 throw error;
         }
        // **Yaha pe replace**
-    const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/${encodeURIComponent(
-       safeFileName
-    )}`;
-
-    console.log("Uploaded file public URL:", publicUrl.publicUrl);
-    
-    return publicUrl.publicUrl;
+    const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/${encodeURIComponent(safeFileName)}`;
+    console.log("Uploaded file public URL:", publicUrl);
+    return publicUrl;
 };
