@@ -3,6 +3,9 @@ import path from 'path';
 import File from '../models/fileModel.js';
 import ConversionLog from '../models/conversionLogs.js';
 import { convertMedia } from '../services/audiovideoService.js';
+import { uploadFileToSupabase } from '../services/storageService.js';
+
+
 export const mediaConversionController = async(req, res) => {
     try{
         const userId = req.user.id;
@@ -14,25 +17,30 @@ export const mediaConversionController = async(req, res) => {
             res.status(400).json({message:"Invalid Target Format"});
         }
 
-        const {outputName} = await convertMedia(req.file.path,targetFormat);
+        const {outputPath} = await convertMedia(req.file.path,targetFormat);
+
+        const { name } = path.parse(req.file.originalname || 'file');
+        const supabaseFileName = `${Date.now()}-${name}.${targetFormat}`;
         
+        const fileUrl = await uploadFileToSupabase(outputPath,supabaseFileName);
         const fileRecord = await File.create({
             filename:req.file.originalname,
             filetype:req.file.mimetype,
             filesize:req.file.size,
             user_id:userId,
-            converted_file_url:`uploads/${outputName}`
+            converted_file_url:fileUrl
         });
 
         await ConversionLog.create({
             file_id:fileRecord.id,
             target_format:targetFormat,
             status:"completed",
-            converted_file_url:`uploads/${outputName}`
+            converted_file_url:fileUrl
         });
 
         fs.unlinkSync(req.file.path);
-        res.json({message:"Media Converted Succesfully", url:`/uploads/${outputName}`});
+        fs.unlinkSync(outputPath);
+        res.json({message:"Media Converted Succesfully", url: fileUrl});
     }catch(err) {
         console.error(err);
         res.status(500).json({message:"Media Conversion Failed"});
