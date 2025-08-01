@@ -5,8 +5,7 @@ import sharp from 'sharp';
 export const convertImageFile = async(inputPath,targetFormat) => {
     const allowedFormats = ["png","jpeg","jpg","webp"];
         if(!allowedFormats.includes(targetFormat)){
-            fs.unlinkSync(inputPath);
-            return res.status(400).json({message:"Invalid Format"});
+              throw new Error("Unsupported target format");
         }
         
         const extension = targetFormat === "jpg" ? "jpeg": targetFormat;
@@ -24,7 +23,7 @@ export const convertImageFile = async(inputPath,targetFormat) => {
         if(extension === "jpg") await image.jpg().toFile(outputPath);
         if(extension === "webp") await image.webp().toFile(outputPath);
 
-        fs.unlinkSync(inputPath);
+       
 
 
         return outputPath;
