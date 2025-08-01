@@ -11,4 +11,4 @@ export const convertMedia = async (inputPath, outputFormat) =>{
           .save(outputPath);
 
     });
-};
+}; 
