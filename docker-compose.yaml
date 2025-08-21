@@ -3,16 +3,68 @@ version: "3.9"
 services:
   backend:
     build: .
+    container_name: smokebyte-backend
+    user: "${UID}"
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      REDIS_HOST: redis       # hostname of redis container
+      REDIS_HOST: redis
       REDIS_PORT: 6379
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src/temp:/app/src/temp
+      - ./public/uploads:/app/public/uploads
+    networks:
+      - smokebyte-net
+
+  worker:
+    build: .
+    container_name: smokebyte-worker
+    user: "${UID}"
+    command: node src/jobs/worker.js
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SUPABASE_BUCKET: ${SUPABASE_BUCKET}
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src/temp:/app/src/temp
+      - ./public/uploads:/app/public/uploads
+    networks:
+      - smokebyte-net
 
   redis:
     image: redis:alpine
+    container_name: redis
     ports:
       - "6379:6379"
+    networks:
+      - smokebyte-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  smokebyte-net:
+    driver: bridge
