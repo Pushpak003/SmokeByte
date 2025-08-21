@@ -4,6 +4,8 @@ FROM node:20-alpine
 # 2. Set working directory inside container
 WORKDIR /app
 
+RUN apk update && apk add --no-cache libreoffice
+
 # 3. Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install --production
