@@ -9,8 +9,15 @@ import { convertMedia } from "./../services/audiovideoService.js";
 import { uploadFileToSupabase } from "./../services/storageService.js";
 import File from "../models/fileModel.js";
 import ConversionLog from "../models/conversionLogs.js";
-
-const connection = new IORedis({ maxRetriesPerRequest: null });
+console.log("--- DEBUGGING ---");
+console.log("Node.js ke andar REDIS_HOST hai =>", process.env.REDIS_HOST);
+console.log("Node.js ke andar REDIS_PORT hai =>", process.env.REDIS_PORT);
+console.log("-----------------");
+const connection = new IORedis({
+  host: process.env.REDIS_HOST || 'redis', // yahi important hai
+  port: Number(process.env.REDIS_PORT) || 6379,
+  maxRetriesPerRequest: null,
+});
 
 async function waitForFile(filePath, retries = 5, delayMs = 200) {
   for (let i = 0; i < retries; i++) {
