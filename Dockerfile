@@ -16,5 +16,8 @@ COPY . .
 # 5. Expose the port your app runs on
 EXPOSE 3000
 
+# 7. Switch to root user
+USER root
+
 # 6. Start the app
 CMD ["node", "src/server.js"]
