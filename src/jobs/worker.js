@@ -9,6 +9,8 @@ import { convertMedia } from "./../services/audiovideoService.js";
 import { uploadFileToSupabase } from "./../services/storageService.js";
 import File from "../models/fileModel.js";
 import ConversionLog from "../models/conversionLogs.js";
+import { safeDelete } from "../utils/fileUtils.js";
+
 console.log("--- DEBUGGING ---");
 console.log("Node.js ke andar REDIS_HOST hai =>", process.env.REDIS_HOST);
 console.log("Node.js ke andar REDIS_PORT hai =>", process.env.REDIS_PORT);
@@ -79,23 +81,9 @@ const worker = new Worker(
     });
 
     // Delete files safely
-    try {
-  await fs.unlink(convertedFilePath);
-  console.log(`Deleted converted file: ${convertedFilePath}`);
-} catch (e) {
-  console.warn(`Converted file already deleted or busy: ${convertedFilePath}`);
-}
-
-// Thoda wait for sharp releasing temp file
-await new Promise((res) => setTimeout(res, 300));
-
-// Delete original temp file
-try {
-  await fs.unlink(filePath);
-  console.log(`Deleted original temp file: ${filePath}`);
-} catch (e) {
-  console.warn(`Temp file already deleted or busy: ${filePath}`);
-}
+    await safeDelete(convertedFilePath);
+    await new Promise((res) => setTimeout(res, 300));
+    await safeDelete(filePath);
 
     return { fileUrl, userId };
   },
@@ -106,7 +94,7 @@ worker.on("completed", (job, result) => {
   console.log(`✅ Job ${job.id} completed: ${result.fileUrl}`);
 });
 worker.on("failed", (job, err) => {
-  console.log(`❌ Job ${job.id} failed: ${err.message}`);
+  console.log(`❌ Job ${job.id} failed:`, err.message || err);
 });
 
 export default worker;
