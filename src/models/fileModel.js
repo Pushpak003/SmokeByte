@@ -21,7 +21,7 @@ const File = sequelize.define("File", {
         allowNull: false
     },
     converted_file_url: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.TEXT,
         allowNull: false
     }
 }, {
