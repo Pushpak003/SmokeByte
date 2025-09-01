@@ -1,106 +1,135 @@
-# File COnversion API with Queue and cloud Storage
+# SmokeByte – File Conversion API
 
-## Overview
+[![Node.js](https://img.shields.io/badge/Node.js-v18.17.1-green)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express.js-4.x-blue)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.5-blue)](https://www.postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7.2-orange)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-latest-blue?logo=docker)](https://www.docker.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-1.0-green)](https://supabase.com/)
 
-This project is a scalable backend API which allowa users to convert images,documents,audio,video files.
-This backend  uses **Node.js, Express, Sequelize ORM, BullMQ queue system** and **Supabase cloud storage** 
+SmokeByte is a **robust file conversion API** built with Node.js and Express.  
+It supports **document, image, and audio/video conversions**, provides a **job queue**, and secure access with **JWT tokens**.  
 
 ---
 
 ## Features
 
--User authentication(JWT with access and refresh tokens)
--File upload with size and MIME type validation
--Background file conversion queue using **BullMQ + Redis**
--Imagae conversion (Sharp), document conversion (LibreOffice), media conversion(Ffmpeg) 
--Converted files will be stored on Supabase storage
--Rate limitng for security
--Local temp folder for file processing cleanup
--API modular and scalable folder structure
+- ✅ Multiple file conversions  
+  - Documents: Word ↔ PDF, TXT; PowerPoint → PDF; PDF → Images  
+  - Images: JPEG ↔ PNG, PDF; PNG → JPEG, PDF  
+  - Audio/Video: Format conversions via FFmpeg  
+- ✅ Queue-based processing (Bull + Redis)  
+- ✅ Temporary storage (`temp/`) for uploads and `public/uploads/` for converted files  
+- ✅ Supabase integration for permanent file storage  
+- ✅ Access + Refresh token authentication  
+  - Access token: 15 min  
+  - Refresh token: 7 days  
+- ✅ Job ID system to track and access converted files  
+- ✅ Dockerized for easy deployment  
 
 ---
 
 ## Folder Structure
+```
+public
+└── uploads # Temporary storage for converted files
+```
+```
+src
+├── config # DB, FFmpeg, Supabase configs
+├── controllers # Route controllers
+├── jobs # Queue and worker logic
+├── middlewares # Auth, upload, rate limiter
+├── models # Database models
+├── routes # API routes
+├── services # Conversion & storage logic
+├── temp # Pre-conversion temp storage
+├── utils # File utils, JWT, logging
+├── app.js # Route assembly
+└── server.js # Entry point
+```
 
-public/uploads/ # Temporary uploaded & converted files
-
-## Project Structure
-Project standard Node.js MVC pattern follow karta hai:
-- `controllers/` → Route handlers
-- `services/` → Conversion & storage logic
-- `jobs/` → Queue system (BullMQ)
-- `models/` → Sequelize models
-- `middlewares/` → Auth, validation
-- `routes/` → API route files
-- `utils/` → Helper utilities
-- `config/` → DB, ffmpeg, supabase config
-- `temp/` → Temporary file storage
-- `public/uploads/` → Local storage for uploads
-
-app.js   → Express app setup
-
-server.js  →  Server entry point.
-
-.env  →  Environment variables.
 
 ---
 
-## Setup
+## Workflow Diagram
 
-1. **Clone the repo:**
-   ```bash
-   git clone <repo_url>
-   cd <repo_folder>
-   ```
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-3. **Setup .env file with variables**
-   ```env
-   PORT=3000
-   DATABASE_URL=postgres://username:password@localhost:5432/dbname
-   JWT_SECRET=your_jwt_secret
-   JWT_REFRESH_SECRET=your_jwt_refresh_secret
-   REDIS_URL=redis://localhost:6379
-   SUPABASE_URL=https://your-supabase-url.supabase.co
-   SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
-4. **Start Redis server locally (if not already running)6:**
-   ```bash
-   redis-server
-   ```
-5. **Run migrations & seed database if needed (using Sequelize CLI or custom scripts).**
-6. **Start the queue worker in a separate terminal:**
-   ```bash
-   node src/jobs/worker.js
-   ```
-7. **Start the backend server:**
-   ```bash
-   npm start
-   ```
-# API Endpoints (examples)
-
-POST /api/auth/register – User registration
-
-POST /api/auth/login – User login
-
-POST /api/conversion/image – Upload & convert image (adds job to queue)
-
-GET /api/user/history – Get user conversion history (requires auth)
-
-# Usage 
-
-Upload file & specify target format to conversion routes.
-
-Conversion job is queued and processed asynchronously.
-
-Converted files are stored in Supabase and accessible via URLs.
-
-Users can fetch their conversion history via protected routes.
+```mermaid
+flowchart TD
+    A[User Uploads File] --> B[Saved to temp/ Folder]
+    B --> C[Job Added to Queue]
+    C --> D[Worker Processes Conversion]
+    D --> E[Upload to Supabase Bucket]
+    D --> F[Delete temp File]
+    D --> G[Save Conversion Log in DB]
+    H[User Requests File with Job ID + Access Token] --> I[Fetch File from Supabase]
 
 
 
+```
 
-   
-          
+## Environment variables
+```
+PORT=3000
+
+DATABASE_URL=postgres://postgres:password@host.docker.internal:5432/SmokeByte
+
+JWT_SECRET=<ACCESS_SECRET>
+JWT_REFRESH_SECRET=<REFRESH_SECRET>
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+UID=1000
+
+SUPABASE_URL=<SUPABASE_URL>
+SUPABASE_KEY=<SUPABASE_KEY>
+SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
+SUPABASE_BUCKET=convert-files
+```
+
+## Getting Started 
+
+ ### Install Dependencies
+ ```
+  npm install
+ ```
+ ### Run Docker
+ ```
+  docker-compose up -d
+ ```
+ ### Start Server
+ ```
+  npm start
+ ```
+
+## API Workflow
+
+1.Upload File → Returns Job ID
+
+2.Job Processing → Queue handles conversion, upload, and cleanup
+
+3.Retrieve Converted File → Use Job ID + Access Token
+
+## Example Endpoints
+```
+| Method | Endpoint              | Description                |
+| ------ | --------------------- | -------------------------- |
+| POST   | `/auth/register`      | Register user              |
+| POST   | `/auth/login`         | Login user                 |
+| POST   | `/convert/upload`     | Upload file for conversion |
+| GET    | `/status/:jobId`      | Check conversion status    |
+| GET    | `/files/:jobId`       | Download converted file    |
+| POST   | `/auth/refresh-token` | Refresh access token       |
+```
+## Tech Stack
+```
+• Backend: Node.js, Express.js
+• Database: PostgreSQL
+• Queue: Bull (Redis)
+• Storage: Supabase
+• Media Conversion: FFmpeg
+• Authentication: JWT (Access + Refresh tokens)
+• Dockerized for easy deployment
+```
+
+
