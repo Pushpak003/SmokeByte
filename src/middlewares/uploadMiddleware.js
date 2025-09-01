@@ -27,6 +27,8 @@ const allowedTypes =[
   "application/vnd.oasis.opendocument.text",       
   "application/msword",                             
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+  "application/vnd.ms-powerpoint", // .ppt
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "text/html",                                     
 
   // Images
