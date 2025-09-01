@@ -29,6 +29,9 @@ const allowedTypes =[
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
   "application/vnd.ms-powerpoint", // .ppt
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint", // old .ppt
+  "application/mspowerpoint",      // some browsers use this for .ppt
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation", 
   "text/html",                                     
 
   // Images
