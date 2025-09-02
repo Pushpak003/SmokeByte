@@ -18,3 +18,15 @@ export const getUserHistory = async(req, res) =>{
         res.status(500).json({message:"Failed to fetch history"});
     }
 };
+export const getUserProfile = async (req, res) => {
+  try {
+    // authMiddleware already finds the user and attaches it to req.user
+    const userProfile = {
+      id: req.user.id,
+      username: req.user.username,
+    };
+    res.status(200).json(userProfile);
+  } catch (error) {
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
