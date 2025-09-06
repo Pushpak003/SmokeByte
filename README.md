@@ -134,6 +134,7 @@ SUPABASE_BUCKET=convert-files
 • Queue: Bull (Redis)
 • Storage: Supabase
 • Media Conversion: FFmpeg
+• Document Conversion: LibreOffice
 • Authentication: JWT (Access + Refresh tokens)
 • Dockerized for easy deployment
 ```
