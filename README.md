@@ -120,7 +120,7 @@ SUPABASE_BUCKET=convert-files
 | GET    | `/user/me`            | User profile               |
 | POST   | `/convert/image`      | Convert image files        |
 | POST   | `/convert/document`   | Convert document files     |
-| POST   | `/convert/media   `   | Convert media files        |
+| POST   | `/convert/media`      | Convert media files        |
 | GET    | `/status/:jobId`      | Get File Status            |
 | GET    | `/download`           | Download files             |
 | POST   | `/refersh-token`      | Generate refresh token     |
