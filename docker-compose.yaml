@@ -1,13 +1,11 @@
-version: "3.9"
-
 services:
   backend:
     build: .
-    container_name: smokebyte-backend
-    user: "${UID}"
+    image: pushpakk03/smokebyte-backend:latest
     ports:
       - "3000:3000"
     environment:
+      PORT: 3000
       NODE_ENV: production
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -21,16 +19,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./src/temp:/app/src/temp
-      - ./public/uploads:/app/public/uploads
     networks:
       - smokebyte-net
 
   worker:
     build: .
-    container_name: smokebyte-worker
-    user: "${UID}"
+    image: pushpakk03/smokebyte-worker:latest
     command: node src/jobs/worker.js
     environment:
       REDIS_HOST: redis
@@ -46,15 +40,11 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./src/temp:/app/src/temp
-      - ./public/uploads:/app/public/uploads
     networks:
       - smokebyte-net
 
   redis:
     image: redis:alpine
-    container_name: redis
     ports:
       - "6379:6379"
     networks:
