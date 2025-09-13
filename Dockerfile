@@ -1,23 +1,21 @@
-# 1. Use official Node.js image
+# Use small Node.js image
 FROM node:20-alpine
 
-# 2. Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-RUN apk update && apk add --no-cache libreoffice
+# Install dependencies required (if any extra, add here)
+RUN apk add --no-cache bash
 
-# 3. Copy package files and install dependencies
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install --production
 
-# 4. Copy app source code
+# Copy source code
 COPY . .
 
-# 5. Expose the port your app runs on
+# Expose backend port
 EXPOSE 3000
 
-# 7. Switch to root user
-USER root
-
-# 6. Start the app
+# Default command (can override in docker-compose)
 CMD ["node", "src/server.js"]
