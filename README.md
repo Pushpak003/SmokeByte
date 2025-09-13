@@ -116,10 +116,16 @@ SUPABASE_BUCKET=convert-files
 | ------ | --------------------- | -------------------------- |
 | POST   | `/auth/register`      | Register user              |
 | POST   | `/auth/login`         | Login user                 |
-| POST   | `/convert/upload`     | Upload file for conversion |
-| GET    | `/status/:jobId`      | Check conversion status    |
-| GET    | `/files/:jobId`       | Download converted file    |
-| POST   | `/auth/refresh-token` | Refresh access token       |
+| GET    | `/user/history`       | Get user history           |
+| GET    | `/user/me`            | User profile               |
+| POST   | `/convert/image`      | Convert image files        |
+| POST   | `/convert/document`   | Convert document files     |
+| POST   | `/convert/media`      | Convert media files        |
+| GET    | `/status/:jobId`      | Get File Status            |
+| GET    | `/download`           | Download files             |
+| POST   | `/refersh-token`      | Generate refresh token     |
+| POST   | `/logout`             | Logout user                |
+
 ```
 ## Tech Stack
 ```
@@ -128,6 +134,7 @@ SUPABASE_BUCKET=convert-files
 • Queue: Bull (Redis)
 • Storage: Supabase
 • Media Conversion: FFmpeg
+• Document Conversion: LibreOffice
 • Authentication: JWT (Access + Refresh tokens)
 • Dockerized for easy deployment
 ```
