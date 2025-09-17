@@ -7,6 +7,8 @@ WORKDIR /app
 # Install dependencies required (if any extra, add here)
 RUN apk add --no-cache bash
 
+
+
 # Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install --production
