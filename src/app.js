@@ -15,7 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({origin:  'http://localhost:5173',credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({origin:  'https://smoke-byte-frontend.vercel.app',credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(limiter);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
