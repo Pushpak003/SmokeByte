@@ -1,4 +1,6 @@
 import { addToQueue } from "../jobs/conversionQueue.js";
+import { uploadFileToSupabase } from "../services/storageService.js";
+import fs from "fs";
 
 
 export const mediaConversionController = async (req, res) => {
@@ -9,8 +11,14 @@ export const mediaConversionController = async (req, res) => {
       return res.status(400).json({ message: "Invalid target format" });
     }
 
+    const fileName = `${Date.now()}-${req.file.originalname}`;
+    const fileUrl = await uploadFileToSupabase(req.file.path, fileName);
+
+    fs.unlinkSync(req.file.path);
+
+
   const job =   await addToQueue({
-  filePath: req.file.path,
+  fileUrl,
   targetFormat,
   userId: req.user.id,
   originalName: req.file.originalname,
