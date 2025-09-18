@@ -1,5 +1,6 @@
 import { addToQueue } from "../jobs/conversionQueue.js";
-
+import { uploadFileToSupabase } from "../services/storageService.js";
+import fs from "fs";
 
 export const convertImage = async (req, res) => {
   try {
@@ -9,20 +10,25 @@ export const convertImage = async (req, res) => {
       return res.status(400).json({ message: "Invalid target format" });
     }
 
+    const fileName = `${Date.now()}-${req.file.originalname}`;
+    const fileUrl = await uploadFileToSupabase(req.file.path, fileName);
+
+    fs.unlinkSync(req.file.path);
+
     const job = await addToQueue({
-  filePath: req.file.path,
-  targetFormat,
-  userId: req.user.id,
-  originalName: req.file.originalname,
-  fileType: req.file.mimetype,
-  mimeType: req.file.mimetype,
-  fileSize: req.file.size,
-});
-   res.status(200).json({
+      fileUrl,
+      targetFormat,
+      userId: req.user.id,
+      originalName: req.file.originalname,
+      fileType: req.file.mimetype,
+      mimeType: req.file.mimetype,
+      fileSize: req.file.size,
+    });
+    res.status(200).json({
       message: "Image conversion job added to queue",
       jobId: job.id,
     });
-   }catch (err) {
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
