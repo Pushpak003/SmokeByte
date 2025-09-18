@@ -3,6 +3,8 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import fs from "fs/promises";
 import path from "path";
+import os from "os";
+import axios from "axios";
 import { convertImageFile } from "./../services/imageService.js";
 import { convertDocument } from "./../services/documentService.js";
 import { convertMedia } from "./../services/audiovideoService.js";
@@ -12,35 +14,25 @@ import ConversionLog from "../models/conversionLogs.js";
 import { safeDelete } from "../utils/fileUtils.js";
 
 console.log("--- DEBUGGING ---");
-console.log("Node.js ke andar REDIS_HOST hai =>", process.env.REDIS_HOST);
-console.log("Node.js ke andar REDIS_PORT hai =>", process.env.REDIS_PORT);
+console.log("Node.js ke andar REDIS_URL hai =>", process.env.REDIS_URL);
 console.log("-----------------");
-const connection = new IORedis({
-  host: process.env.REDIS_HOST || 'redis', // yahi important hai
-  port: Number(process.env.REDIS_PORT) || 6379,
+
+const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
 });
 
-async function waitForFile(filePath, retries = 5, delayMs = 200) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-  }
-  return false;
+async function downloadFile(fileUrl) {
+  const response = await axios.get(fileUrl,{responseType: "arraybuffer"});
+  const tempPath = path.join(os.tmpdir(),`${Date.now()}-${path.basename(fileUrl)}`);
+  await fs.writeFile(tempPath, Buffer.from(response.data));
+  return tempPath;
 }
-
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
-    const { filePath, targetFormat, userId, originalName, fileType, fileSize } = job.data;
+    const { fileUrl:inputFileUrl, targetFormat, userId, originalName, fileType, fileSize } = job.data;
 
-    const fileExists = await waitForFile(filePath);
-    if (!fileExists) throw new Error(`Input file is missing after retries: ${filePath}`);
-
+    const filePath = await downloadFile(inputFileUrl);
     let convertedFilePath;
 
     if (fileType.startsWith("image")) {
@@ -83,7 +75,7 @@ const worker = new Worker(
     // Delete files safely
     await safeDelete(convertedFilePath);
     await new Promise((res) => setTimeout(res, 300));
-    await safeDelete(filePath);
+    //await safeDelete(filePath);
 
     return { fileUrl, userId };
   },
