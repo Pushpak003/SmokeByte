@@ -1,0 +1,221 @@
+{
+	"info": {
+		"_postman_id": "40658388-4a5b512b-06a9-49ec-83cd-5fb9ef57c920",
+		"name": "Prod",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "https://smokebyte-backend-latest.onrender.com/convert/image",
+			"id": "40658388-9f731995-5305-4784-a0bd-79f8ceb5b7e9",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODA5MzM1MCwiZXhwIjoxNzU4MDk0MjUwfQ.OdQFyw0lerjTiZSbIio2RufjyE5lkRbgGw7PY6ahN44",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"uuid": "0fa5e347-6efa-49f2-a104-34915fc1f712",
+							"src": "postman-cloud:///1f087199-82db-45b0-895d-48f1834c378f"
+						},
+						{
+							"key": "targetFormat",
+							"value": "JPG",
+							"type": "text",
+							"uuid": "94148e04-bc39-4a63-8141-1f8c555aa62e"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://smokebyte-backend-latest.onrender.com/convert/image",
+					"protocol": "https",
+					"host": [
+						"smokebyte-backend-latest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"convert",
+						"image"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://smokebyte-backend-latest.onrender.com/auth/refresh-token",
+			"id": "40658388-aa7565c8-7752-48c5-99ae-87ad046eebba",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"refreshToken\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODAyNTg1MywiZXhwIjoxNzU4NjMwNjUzfQ.TleA56Z1ItmeIykIdqF7yz2kCDGQpHNri99gFEfIe5g\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://smokebyte-backend-latest.onrender.com/auth/refresh-token",
+					"protocol": "https",
+					"host": [
+						"smokebyte-backend-latest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"auth",
+						"refresh-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://smokebyte-backend-latest.onrender.com/auth/login",
+			"id": "40658388-b29b84f9-d8f5-4f7f-a820-ef46f01e40f7",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"Lulla123\",\r\n \"password\": \"String@123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://smokebyte-backend-latest.onrender.com/auth/login",
+					"protocol": "https",
+					"host": [
+						"smokebyte-backend-latest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://smokebyte-backend-latest.onrender.com/convert/media",
+			"id": "40658388-186c1df4-12d6-406e-a801-fd95ff9250c0",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODAyNTg1MywiZXhwIjoxNzU4MDI2NzUzfQ.tnI0I2YbQfgqaH742dc2caQpo1PljJ8SJ7hnJaYpYgg",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"uuid": "9296481f-294e-4676-a9da-6949cffa9428",
+							"src": "postman-cloud:///1f06be8f-5731-44f0-bb8a-56b6b4d196b3"
+						},
+						{
+							"key": "targetFormat",
+							"value": "mp3",
+							"type": "text",
+							"uuid": "8793c41c-4ede-45a4-82db-89af7f38e201"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://smokebyte-backend-latest.onrender.com/convert/media",
+					"protocol": "https",
+					"host": [
+						"smokebyte-backend-latest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"convert",
+						"media"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://smokebyte-backend-latest.onrender.com/convert/document",
+			"id": "40658388-f1c430d4-6b94-4a51-9350-2c6fe57bd969",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODEyODgwNiwiZXhwIjoxNzU4MTI5NzA2fQ.g6oD-fMEvgw4DaJDDx0js4tt9MJQfY2Z3_zs0IKMLIs",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"uuid": "0fa5e347-6efa-49f2-a104-34915fc1f712",
+							"src": "postman-cloud:///1f06b953-34eb-4260-bc07-a516d3e75d60"
+						},
+						{
+							"key": "targetFormat",
+							"value": "pdf",
+							"type": "text",
+							"uuid": "94148e04-bc39-4a63-8141-1f8c555aa62e"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://smokebyte-backend-latest.onrender.com/convert/document",
+					"protocol": "https",
+					"host": [
+						"smokebyte-backend-latest",
+						"onrender",
+						"com"
+					],
+					"path": [
+						"convert",
+						"document"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
