@@ -16,7 +16,7 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODA5MzM1MCwiZXhwIjoxNzU4MDk0MjUwfQ.OdQFyw0lerjTiZSbIio2RufjyE5lkRbgGw7PY6ahN44",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODY5NzcwOSwiZXhwIjoxNzU4Njk4NjA5fQ.-TSHsQTZXs20P89jH3loPMrpouPiaWtpyx7xewb9G_A",
 						"type": "text"
 					}
 				],
