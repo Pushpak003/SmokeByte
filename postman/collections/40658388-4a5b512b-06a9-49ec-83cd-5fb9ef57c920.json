@@ -180,7 +180,7 @@
 				"header": [
 					{
 						"key": "Authorization",
-						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODEyODgwNiwiZXhwIjoxNzU4MTI5NzA2fQ.g6oD-fMEvgw4DaJDDx0js4tt9MJQfY2Z3_zs0IKMLIs",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJMdWxsYTEyMyIsImlhdCI6MTc1ODY5NzcwOSwiZXhwIjoxNzU4Njk4NjA5fQ.-TSHsQTZXs20P89jH3loPMrpouPiaWtpyx7xewb9G_A",
 						"type": "text"
 					}
 				],
