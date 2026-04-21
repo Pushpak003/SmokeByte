@@ -1,11 +1,18 @@
 services:
   backend:
     build: .
+    
     image: pushpakk03/smokebyte-backend:latest
     ports:
       - "3000:3000"
+    
+    dns:
+    - 8.8.8.8
+    - 1.1.1.1
     environment:
       PORT: 3000
+      environment:
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
       NODE_ENV: production
       REDIS_URL: ${REDIS_URL}
       DATABASE_URL: ${DATABASE_URL}
@@ -29,6 +36,7 @@ services:
     image: pushpakk03/smokebyte-worker:latest
     command: node src/jobs/worker.js
     environment:
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
       REDIS_URL: ${REDIS_URL}
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
