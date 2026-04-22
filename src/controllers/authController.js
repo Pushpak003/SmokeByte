@@ -24,6 +24,7 @@ export const register = async(req,res) => {
 
 export const login = async(req, res) => {
     const {username,password}= req.body;
+    console.log(`Login attempt for user: ${username}`);
     try{
         const user = await User.findOne({ where: { username: username } });
         if(!user)  return res.status(401).json({message: "Invalid Credentials"});

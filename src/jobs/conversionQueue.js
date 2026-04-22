@@ -3,6 +3,10 @@ import IORedis from "ioredis";
 
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
+  enableOfflineQueue: true,
+  tls: {
+    rejectUnauthorized: false, // dev ke liye
+  },
 });
 
 export const conversionQueue = new Queue("conversionQueue", {connection});

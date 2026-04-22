@@ -2,6 +2,7 @@ import "dotenv/config";
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import os from "os";
 import axios from "axios";
@@ -19,25 +20,56 @@ console.log("-----------------");
 
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
+  enableOfflineQueue: true,
+  tls: {
+    rejectUnauthorized: false, // dev ke liye
+  },
 });
 
 async function downloadFile(fileUrl) {
-  const response = await axios.get(fileUrl,{responseType: "arraybuffer"});
-  const tempPath = path.join(os.tmpdir(),`${Date.now()}-${path.basename(fileUrl)}`);
+  const response = await axios.get(encodeURI(fileUrl), {
+    responseType: "arraybuffer",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+  const tempPath = path.join(
+    os.tmpdir(),
+    `${Date.now()}-${path.basename(fileUrl)}`,
+  );
   await fs.writeFile(tempPath, Buffer.from(response.data));
   return tempPath;
 }
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
-    const { fileUrl:inputFileUrl, targetFormat, userId, originalName, fileType, fileSize } = job.data;
+    console.log("🟡 JOB DATA:", job.data);
+    const {
+      fileUrl: inputFileUrl,
+      targetFormat,
+      userId,
+      originalName,
+      fileType,
+      fileSize,
+    } = job.data;
 
     const filePath = await downloadFile(inputFileUrl);
+    console.log("🟢 DOWNLOADED FILE PATH:", filePath);
+    if (!fsSync.existsSync("public/uploads")) {
+      fsSync.mkdirSync("public/uploads", { recursive: true });
+    }
     let convertedFilePath;
+
+    console.log("🔵 FILE TYPE:", fileType);
+    console.log("🔵 TARGET FORMAT:", targetFormat);
 
     if (fileType.startsWith("image")) {
       convertedFilePath = await convertImageFile(filePath, targetFormat);
-    } else if (fileType.startsWith("application") || fileType === "text/plain") {
+      console.log("🟣 CONVERTED FILE PATH:", convertedFilePath);
+    } else if (
+      fileType.startsWith("application") ||
+      fileType === "text/plain"
+    ) {
       const { convertedPath } = await convertDocument(filePath, targetFormat);
       convertedFilePath = convertedPath;
     } else if (fileType.startsWith("video") || fileType.startsWith("audio")) {
@@ -79,7 +111,7 @@ const worker = new Worker(
 
     return { fileUrl, userId };
   },
-  { connection }
+  { connection },
 );
 
 worker.on("completed", (job, result) => {

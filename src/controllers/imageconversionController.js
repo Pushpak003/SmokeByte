@@ -9,8 +9,8 @@ export const convertImage = async (req, res) => {
     if (!allowedFormats.includes(targetFormat)) {
       return res.status(400).json({ message: "Invalid target format" });
     }
-
-    const fileName = `${Date.now()}-${req.file.originalname}`;
+    const cleanName = req.file.originalname.replace(/[^a-zA-Z0-9.]/g, "");
+    const fileName = `${Date.now()}-${cleanName}`;
     const fileUrl = await uploadFileToSupabase(req.file.path, fileName);
 
     fs.unlinkSync(req.file.path);
