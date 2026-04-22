@@ -98,7 +98,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"username\": \"Lulla123\",\r\n \"password\": \"String@123\"\r\n}",
+					"raw": "{\"username\": \"Push123\",\r\n \"password\": \"String@123\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -106,7 +106,7 @@
 					}
 				},
 				"url": {
-					"raw": "https://smokebyte-backend-latest.onrender.com/auth/login",
+					"raw": "https://smokebyte-backend-latest.onrender.com/auth/signup",
 					"protocol": "https",
 					"host": [
 						"smokebyte-backend-latest",
@@ -115,7 +115,7 @@
 					],
 					"path": [
 						"auth",
-						"login"
+						"signup"
 					]
 				}
 			},
