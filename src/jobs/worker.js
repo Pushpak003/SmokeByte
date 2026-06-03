@@ -13,17 +13,17 @@ import { uploadFileToSupabase } from "./../services/storageService.js";
 import File from "../models/fileModel.js";
 import ConversionLog from "../models/conversionLogs.js";
 import { safeDelete } from "../utils/fileUtils.js";
-
-console.log("--- DEBUGGING ---");
-console.log("Node.js ke andar REDIS_URL hai =>", process.env.REDIS_URL);
-console.log("-----------------");
-
+console.log(process.env.SUPABASE_URL);
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableOfflineQueue: true,
-  tls: {
-    rejectUnauthorized: false, // dev ke liye
-  },
+  ...(process.env.NODE_ENV !== "production"
+    ? {
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {}),
 });
 
 async function downloadFile(fileUrl) {
@@ -111,7 +111,7 @@ const worker = new Worker(
 
     return { fileUrl, userId };
   },
-  { connection },
+  { connection, concurrency: 5 },
 );
 
 worker.on("completed", (job, result) => {

@@ -29,5 +29,12 @@ app.use("/uploads",express.static(path.join(process.cwd(), "public", "uploads"))
 app.use("/convert",conversionRoutes);
 app.use("/status", statusRoutes);
 app.use('/download', downloadRoutes);
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "ok",
+    uptime: process.uptime(),
+  });
+});
 app.use(errorHandler);
 export default app;

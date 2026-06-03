@@ -18,6 +18,8 @@ export const register = async(req,res) => {
 
         res.status(201).json({accessToken,refreshToken,user:{id:user.id,username: user.username}});
 }catch(err){
+    console.error("SIGNUP ERROR:", err);
+
    res.status(500).json({message:err.message});
    }
 };

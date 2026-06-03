@@ -4,9 +4,13 @@ import IORedis from "ioredis";
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableOfflineQueue: true,
-  tls: {
-    rejectUnauthorized: false, // dev ke liye
-  },
+  ...(process.env.NODE_ENV !== "production"
+    ? {
+        tls: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {}),
 });
 
 export const conversionQueue = new Queue("conversionQueue", {connection});
@@ -16,6 +20,6 @@ export const addToQueue = async(jobData) =>{
         attempts:3,
         backoff: {type: "fixed", delay:2000},
         removeOnComplete:true,
-        removeOnFail:false
+        removeOnFail:true
     });
 };
