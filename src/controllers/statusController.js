@@ -3,8 +3,14 @@ import ConversionLog from "../models/conversionLogs.js";
 export const getConversionStatus = async (req, res) => {
   try {
     const log = await ConversionLog.findOne({
-      where: { id: req.params.jobId },
-      user_id:req.user.id
+      where: { id: req.params.id },
+      include: [{
+        model: File,
+        where: {
+          user_id: req.user_id,
+        },
+        attributes: [],
+      },],
     });
 
     if (!log) return res.status(404).json({ message: "Job not found" });
