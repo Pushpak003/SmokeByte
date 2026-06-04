@@ -6,6 +6,7 @@ import fsSync from "fs";
 import path from "path";
 import os from "os";
 import axios from "axios";
+import sequelize  from "../config/db.js";
 import { convertImageFile } from "./../services/imageService.js";
 import { convertDocument } from "./../services/documentService.js";
 import { convertMedia } from "./../services/audiovideoService.js";
@@ -13,7 +14,7 @@ import { uploadFileToSupabase } from "./../services/storageService.js";
 import File from "../models/fileModel.js";
 import ConversionLog from "../models/conversionLogs.js";
 import { safeDelete } from "../utils/fileUtils.js";
-console.log(process.env.SUPABASE_URL);
+
 const connection = new IORedis(process.env.REDIS_URL, {
   maxRetriesPerRequest: null,
   enableOfflineQueue: true,
@@ -89,25 +90,40 @@ const worker = new Worker(
     const fileUrl = await uploadFileToSupabase(convertedFilePath, fileName);
 
     // Save DB records
-    const fileRecord = await File.create({
+   const transaction = await sequelize.transaction();
+
+try {
+  const fileRecord = await File.create(
+    {
       filename: originalName,
       filetype: fileType,
       filesize: fileSize,
       user_id: userId,
       converted_file_url: fileUrl,
-    });
-
-    await ConversionLog.create({
+    },
+    { transaction }
+  );
+  await ConversionLog.create(
+    {
       file_id: fileRecord.id,
       target_format: targetFormat,
       status: "completed",
       converted_file_url: fileUrl,
-    });
+    },
+    { transaction }
+  );
 
+  await transaction.commit();
+
+} catch (err) {
+  await transaction.rollback();
+  throw err;
+}
+    
     // Delete files safely
     await safeDelete(convertedFilePath);
     await new Promise((res) => setTimeout(res, 300));
-    //await safeDelete(filePath);
+    await safeDelete(filePath);
 
     return { fileUrl, userId };
   },
