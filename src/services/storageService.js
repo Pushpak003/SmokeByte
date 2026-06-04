@@ -18,8 +18,6 @@ export const uploadFileToSupabase = async(localFilePath, fileName) =>{
             contentType,
             upsert: true,
         });
-            console.log("Upload response data:", data);
-            console.log("Upload response error:", error);
 
         if(error) {
                 console.error("Upload error:", error);
@@ -27,6 +25,5 @@ export const uploadFileToSupabase = async(localFilePath, fileName) =>{
         }
        // **Yaha pe replace**
     const publicUrl = `${process.env.SUPABASE_URL}/storage/v1/object/public/${process.env.SUPABASE_BUCKET}/${encodeURIComponent(safeFileName)}`;
-    console.log("Uploaded file public URL:", publicUrl);
     return publicUrl;
 };

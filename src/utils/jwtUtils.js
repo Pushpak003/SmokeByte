@@ -16,7 +16,6 @@ export const verifyAccessToken = (token) => {
 };
 
 export const verifyRefreshToken =(token) => {
-    console.log('Refresh Secret Used:', process.env.JWT_REFRESH_SECRET);
 
     return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 };

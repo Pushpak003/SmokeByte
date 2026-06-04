@@ -26,7 +26,6 @@ export const register = async(req,res) => {
 
 export const login = async(req, res) => {
     const {username,password}= req.body;
-    console.log(`Login attempt for user: ${username}`);
     try{
         const user = await User.findOne({ where: { username: username } });
         if(!user)  return res.status(401).json({message: "Invalid Credentials"});
@@ -45,12 +44,11 @@ export const login = async(req, res) => {
 
 export const refreshToken = async(req, res) => {
     const{refreshToken} = req.body;
-    console.log('Received token:', refreshToken);
     if(!refreshToken) return res.status(401).json({message:"No Refresh Token Provided"});
 
     try{
         const decoded = verifyRefreshToken(refreshToken);
-        console.log('Decoded refresh token:', decoded);
+
         const newAccessToken = generateAccessToken({id:decoded.id,username:decoded.username});
         res.json({accessToken:newAccessToken});
     }catch(err){

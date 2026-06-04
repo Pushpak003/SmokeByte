@@ -26,8 +26,18 @@ const connection = new IORedis(process.env.REDIS_URL, {
       }
     : {}),
 });
+function validateSupabaseUrl(fileUrl) {
+  const url = new URL(fileUrl);
+
+  const supabaseHost = new URL(process.env.SUPABASE_URL).hostname;
+
+  if (url.hostname !== supabaseHost) {
+    throw new Error("Only Supabase URLs are allowed");
+  }
+}
 
 async function downloadFile(fileUrl) {
+  validateSupabaseUrl(fileUrl);
   const response = await axios.get(encodeURI(fileUrl), {
     responseType: "arraybuffer",
     headers: {
@@ -44,7 +54,6 @@ async function downloadFile(fileUrl) {
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
-    console.log("🟡 JOB DATA:", job.data);
     const {
       fileUrl: inputFileUrl,
       targetFormat,
@@ -55,18 +64,16 @@ const worker = new Worker(
     } = job.data;
 
     const filePath = await downloadFile(inputFileUrl);
-    console.log("🟢 DOWNLOADED FILE PATH:", filePath);
+   
     if (!fsSync.existsSync("public/uploads")) {
       fsSync.mkdirSync("public/uploads", { recursive: true });
     }
     let convertedFilePath;
 
-    console.log("🔵 FILE TYPE:", fileType);
-    console.log("🔵 TARGET FORMAT:", targetFormat);
 
     if (fileType.startsWith("image")) {
       convertedFilePath = await convertImageFile(filePath, targetFormat);
-      console.log("🟣 CONVERTED FILE PATH:", convertedFilePath);
+     
     } else if (
       fileType.startsWith("application") ||
       fileType === "text/plain"
@@ -131,7 +138,7 @@ try {
 );
 
 worker.on("completed", (job, result) => {
-  console.log(`✅ Job ${job.id} completed: ${result.fileUrl}`);
+  console.log(`✅ Job ${job.id} completed`);
 });
 worker.on("failed", (job, err) => {
   console.log(`❌ Job ${job.id} failed:`, err.message || err);
