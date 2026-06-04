@@ -21,7 +21,7 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({origin:  'https://smoke-byte-frontend.vercel.app',credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(cors({origin:  process.env.FRONTEND_URL,credentials: true, allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(limiter);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
