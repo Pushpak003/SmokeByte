@@ -142,6 +142,7 @@ const worker = new Worker(
 
         await ConversionLog.create(
           {
+            bullmq_job_id: String(job.id),
             file_id: fileRecord.id,
             target_format: targetFormat,
             status: "completed",
