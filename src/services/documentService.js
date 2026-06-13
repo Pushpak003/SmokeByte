@@ -36,8 +36,12 @@ export const convertDocument = (inputPath, targetFormat) => {
     const filter = formatMap[targetFormat] || targetFormat;
     const command = `soffice --headless --convert-to ${filter} "${inputPath}" --outdir "${outputDir}"`;
     console.log(`🚀 Executing command: ${command}`);
-
-    exec(command, (error, stdout, stderr) => {
+    console.log("📄 INPUT PATH:", inputPath);
+    console.log("📄 EXISTS:", fs.existsSync(inputPath));
+    console.log("🎯 TARGET FORMAT:", targetFormat);
+    console.log("📂 OUTPUT DIR:", outputDir);
+    exec(command,{windowsHide: true,},(error, stdout, stderr) => {
+      console.log("📤 STDOUT:", stdout);
       if (error) {
         console.error("❌ EXEC FAILED:", error);
         return reject(error);
@@ -51,18 +55,21 @@ export const convertDocument = (inputPath, targetFormat) => {
 
       try {
         const originalBase = path.basename(inputPath, path.extname(inputPath));
+        console.log("🔍 ORIGINAL BASE:", originalBase);
         const files = fs.readdirSync(outputDir);
         console.log("📂 Files in output directory:", files);
 
         const convertedFile = files.find(
           (f) =>
             f.startsWith(originalBase) &&
-            f.toLowerCase().endsWith(`.${targetFormat}`)
+            f.toLowerCase().endsWith(`.${targetFormat}`),
         );
 
         if (!convertedFile) {
           return reject(
-            new Error("Conversion failed: Output file not found by the script.")
+            new Error(
+              "Conversion failed: Output file not found by the script.",
+            ),
           );
         }
 
