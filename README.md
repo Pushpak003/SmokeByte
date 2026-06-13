@@ -1,142 +1,339 @@
-# SmokeByte – File Conversion API
+<div align="center">
 
-[![Node.js](https://img.shields.io/badge/Node.js-v18.17.1-green)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express.js-4.x-blue)](https://expressjs.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15.5-blue)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7.2-orange)](https://redis.io/)
-[![Docker](https://img.shields.io/badge/Docker-latest-blue?logo=docker)](https://www.docker.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-1.0-green)](https://supabase.com/)
+<img src="https://img.shields.io/badge/SmokeByte-File%20Conversion%20Platform-FF6B35?style=for-the-badge&logo=rocket&logoColor=white" alt="SmokeByte" />
 
-SmokeByte is a **robust file conversion API** built with Node.js and Express.  
-It supports **document, image, and audio/video conversions**, provides a **job queue**, and secure access with **JWT tokens**.  
+<br/>
+
+**A production-ready, async file conversion platform.**  
+Upload. Convert. Download. At scale.
+
+<br/>
+
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Express](https://img.shields.io/badge/Express.js-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://postgresql.org)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![BullMQ](https://img.shields.io/badge/BullMQ-FF2D20?style=flat-square&logo=bull&logoColor=white)](https://docs.bullmq.io)
+
+</div>
+
+---
+
+## What is SmokeByte?
+
+SmokeByte is a backend platform that lets users securely upload files, convert them to different formats through an asynchronous background queue, track conversion status in real-time, and download the results from cloud storage — all via a clean REST API.
+
+It's built to handle image, document, audio, and video conversions reliably, even under load.
 
 ---
 
 ## Features
 
-- ✅ Multiple file conversions  
-  - Documents: Word ↔ PDF, TXT; PowerPoint → PDF; PDF → Images  
-  - Images: JPEG ↔ PNG, PDF; PNG → JPEG, PDF  
-  - Audio/Video: Format conversions via FFmpeg  
-- ✅ Queue-based processing (Bull + Redis)  
-- ✅ Temporary storage (`temp/`) for uploads and `public/uploads/` for converted files  
-- ✅ Supabase integration for permanent file storage  
-- ✅ Access + Refresh token authentication  
-  - Access token: 15 min  
-  - Refresh token: 7 days  
-- ✅ Job ID system to track and access converted files  
-- ✅ Dockerized for easy deployment  
+### 🔐 Authentication & Security
+
+| Feature | Details |
+|---|---|
+| JWT Auth | Access + Refresh token architecture |
+| Password Hashing | bcrypt |
+| Route Protection | Middleware-guarded endpoints |
+| User Isolation | Each user sees only their own resources |
+| Hardening | Helmet, CORS, Rate Limiting |
+
+### 🔄 File Conversion
+
+#### 🖼️ Images — via Sharp
+
+| From | To |
+|---|---|
+| JPG | PNG, WEBP |
+| PNG | JPG, WEBP |
+| WEBP | JPG, PNG |
+
+#### 📄 Documents — via LibreOffice
+
+| From | To |
+|---|---|
+| PDF | DOCX, TXT |
+| DOCX | PDF, TXT |
+| TXT | PDF, DOCX |
+| PPT / PPTX | PDF |
+
+#### 🎵 Audio & Video — via FFmpeg
+
+Supports cross-format conversion across: `MP4`, `AVI`, `MOV`, `WEBM`, `MP3`, `WAV`, `AAC`, `FLAC`, `OGG`, `M4A`, `WMA`
+
+### ⚙️ Queue-Based Processing
+
+- **BullMQ** powered job queue backed by Redis
+- Background worker processes jobs asynchronously
+- Each conversion tracked by a BullMQ Job ID
+- Workers are decoupled from the API — scale independently
+
+### ☁️ Storage
+
+- Converted files stored in **Supabase Object Storage**
+- Temporary local files auto-cleaned post-upload
+- Secure, user-scoped download URLs
+
+### 📦 User Features
+
+- Conversion history per user
+- Real-time job status polling
+- Secure file download
+- Full resource isolation between users
 
 ---
 
-## Folder Structure
-```
-public
-└── uploads # Temporary storage for converted files
-```
-```
-src
-├── config # DB, FFmpeg, Supabase configs
-├── controllers # Route controllers
-├── jobs # Queue and worker logic
-├── middlewares # Auth, upload, rate limiter
-├── models # Database models
-├── routes # API routes
-├── services # Conversion & storage logic
-├── temp # Pre-conversion temp storage
-├── utils # File utils, JWT, logging
-├── app.js # Route assembly
-└── server.js # Entry point
-```
+## Architecture
 
+```
+Frontend / API Client
+        │
+        ▼
+  Express REST API
+  ┌─────┴──────────────────────┐
+  │  Auth  │  Upload  │  Jobs  │
+  └─────┬──────────────────────┘
+        │
+        ▼
+    BullMQ Queue  ←──  Redis
+        │
+        ▼
+     Worker Process
+     ┌────┬────┬────┐
+     │    │    │    │
+     ▼    ▼    ▼    ▼
+  Sharp FFmpeg LibreOffice
+     │    │    │
+     └────┴────┘
+           │
+           ▼
+   Supabase Object Storage
+           │
+           ▼
+       PostgreSQL
+```
 
 ---
 
-## Workflow Diagram
+## Workflow
 
 ```mermaid
 flowchart TD
-    A[User Uploads File] --> B[Saved to temp/ Folder]
-    B --> C[Job Added to Queue]
-    C --> D[Worker Processes Conversion]
-    D --> E[Upload to Supabase Bucket]
-    D --> F[Delete temp File]
-    D --> G[Save Conversion Log in DB]
-    H[User Requests File with Job ID + Access Token] --> I[Fetch File from Supabase]
+    A[User Uploads File] --> B[Upload Validation]
+    B --> C[Store Original in Supabase]
+    C --> D[Create BullMQ Job]
+    D --> E[Worker Picks Up Job]
+    E --> F{File Type?}
 
+    F -->|Image| G[Sharp]
+    F -->|Document| H[LibreOffice]
+    F -->|Audio/Video| I[FFmpeg]
 
+    G --> J[Upload Converted File]
+    H --> J
+    I --> J
 
+    J --> K[Save File Record]
+    K --> L[Save Conversion Log]
+    L --> M[Job ID Returned to Client]
+    M --> N[Client Polls /status/:jobId]
+    N --> O[Client Downloads Converted File]
 ```
 
-## Environment variables
+---
+
+## Project Structure
+
 ```
+src/
+├── config/
+│   ├── db.js                 # PostgreSQL connection
+│   └── supabase.js           # Supabase client
+│
+├── controllers/
+│   ├── authController.js
+│   ├── conversionController.js
+│   ├── statusController.js
+│   ├── historyController.js
+│   └── userController.js
+│
+├── jobs/
+│   ├── queue.js              # BullMQ queue definition
+│   └── worker.js             # Background job processor
+│
+├── middlewares/
+│   ├── authMiddleware.js     # JWT verification
+│   ├── uploadMiddleware.js   # Multer file handling
+│   ├── rateLimiter.js
+│   └── errorHandler.js
+│
+├── models/
+│   ├── userModel.js
+│   ├── fileModel.js
+│   ├── conversionLogs.js
+│   └── refreshTokenModel.js
+│
+├── routes/
+│   ├── authRoutes.js
+│   ├── conversionRoutes.js
+│   ├── statusRoutes.js
+│   ├── historyRoutes.js
+│   └── userRoutes.js
+│
+├── services/
+│   ├── imageService.js       # Sharp logic
+│   ├── documentService.js    # LibreOffice logic
+│   ├── audiovideoService.js  # FFmpeg logic
+│   └── storageService.js     # Supabase upload/download
+│
+├── utils/
+│   ├── jwtUtils.js
+│   ├── fileUtils.js
+│   └── logger.js
+│
+├── app.js
+└── server.js
+```
+
+---
+
+## API Reference
+
+### Auth
+
+```http
+POST   /auth/register          # Create new account
+POST   /auth/login             # Login, receive access + refresh tokens
+POST   /auth/refresh-token     # Get new access token using refresh token
+POST   /auth/logout            # Invalidate session
+```
+
+### User
+
+```http
+GET    /user/me                # Get authenticated user profile
+GET    /user/history           # Get user's conversion history
+```
+
+### Conversion
+
+```http
+POST   /convert/image          # Convert image files
+POST   /convert/document       # Convert document files
+POST   /convert/media          # Convert audio/video files
+```
+
+> All `/convert/*` endpoints return a `jobId` for polling.
+
+### Status & Download
+
+```http
+GET    /status/:jobId          # Poll conversion job status
+GET    /download               # Download converted file
+```
+
+---
+
+## Getting Started
+
+### 1. Clone & Install
+
+```bash
+git clone <repository-url>
+cd SmokeByte
+npm install
+```
+
+### 2. Configure Environment
+
+Create a `.env` file at the project root:
+
+```env
 PORT=3000
 
-DATABASE_URL=postgres://postgres:password@host.docker.internal:5432/SmokeByte
+DATABASE_URL=
 
-JWT_SECRET=<ACCESS_SECRET>
-JWT_REFRESH_SECRET=<REFRESH_SECRET>
+JWT_SECRET=
+JWT_REFRESH_SECRET=
 
-REDIS_HOST=redis
-REDIS_PORT=6379
-UID=1000
+REDIS_URL=
 
-SUPABASE_URL=<SUPABASE_URL>
-SUPABASE_KEY=<SUPABASE_KEY>
-SUPABASE_SERVICE_ROLE_KEY=<SUPABASE_SERVICE_ROLE_KEY>
+SUPABASE_URL=
+SUPABASE_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 SUPABASE_BUCKET=convert-files
+
+NODE_ENV=production
 ```
 
-## Getting Started 
+### 3. Run Development Server
 
- ### Install Dependencies
- ```
-  npm install
- ```
- ### Run Docker
- ```
-  docker-compose up -d
- ```
- ### Start Server
- ```
-  npm start
- ```
+```bash
+# Start API server
+npm run dev
 
-## API Workflow
-
-1.Upload File → Returns Job ID
-
-2.Job Processing → Queue handles conversion, upload, and cleanup
-
-3.Retrieve Converted File → Use Job ID + Access Token
-
-## Example Endpoints
+# Start worker (separate terminal)
+node src/jobs/worker.js
 ```
-| Method | Endpoint              | Description                |
-| ------ | --------------------- | -------------------------- |
-| POST   | `/auth/register`      | Register user              |
-| POST   | `/auth/login`         | Login user                 |
-| GET    | `/user/history`       | Get user history           |
-| GET    | `/user/me`            | User profile               |
-| POST   | `/convert/image`      | Convert image files        |
-| POST   | `/convert/document`   | Convert document files     |
-| POST   | `/convert/media`      | Convert media files        |
-| GET    | `/status/:jobId`      | Get File Status            |
-| GET    | `/download`           | Download files             |
-| POST   | `/refersh-token`      | Generate refresh token     |
-| POST   | `/logout`             | Logout user                |
 
+> The API server and the worker are separate processes. Both need to be running for end-to-end conversions to work.
+
+---
+
+## Docker
+
+```bash
+# Build image
+docker build -t smokebyte .
+
+# Run container
+docker run -p 3000:3000 smokebyte
 ```
+
+---
+
 ## Tech Stack
-```
-• Backend: Node.js, Express.js
-• Database: PostgreSQL
-• Queue: Bull (Redis)
-• Storage: Supabase
-• Media Conversion: FFmpeg
-• Document Conversion: LibreOffice
-• Authentication: JWT (Access + Refresh tokens)
-• Dockerized for easy deployment
-```
 
+| Layer | Technology |
+|---|---|
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | PostgreSQL + Sequelize ORM |
+| Auth | JWT, Refresh Tokens, bcrypt |
+| Queue | BullMQ + Redis (Upstash) |
+| Storage | Supabase Object Storage |
+| Image Processing | Sharp |
+| Media Processing | FFmpeg |
+| Document Processing | LibreOffice |
+| Infrastructure | Docker, PM2, Cloudflare Tunnel |
 
+---
+
+## Roadmap
+
+- [ ] Email verification on signup
+- [ ] Password reset via email
+- [ ] Refresh token rotation
+- [ ] Admin dashboard
+- [ ] Conversion analytics
+- [ ] WebSocket-based real-time status updates
+- [ ] Multi-file batch conversion
+
+---
+
+## Author
+
+**Pushpak Pathe**
+
+Backend Developer — Node.js · Express.js · PostgreSQL · Redis · Docker
+
+---
+
+<div align="center">
+
+Built with ☕ and way too many conversion edge cases.
+
+</div>
