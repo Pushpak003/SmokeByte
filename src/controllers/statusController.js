@@ -8,14 +8,11 @@ export const getConversionStatus = async (req, res) => {
       where: {
         bullmq_job_id: String(req.params.jobId),
       },
-      include: [{
-        model: File,
-        where: {
-          user_id: req.user.id,
-        },
-        attributes: [],
-      }],
+       
     });
+    console.log("JOB ID:", req.params.jobId);
+    console.log("FOUND LOG:", log);
+
 
 
     if (!log) {
