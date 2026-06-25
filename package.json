@@ -25,6 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "mime": "^4.0.7",
     "multer": "^2.0.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "pino": "^10.3.1",
