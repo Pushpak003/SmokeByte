@@ -1,5 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config();
+// "import dotenv/config" is a static import — it runs before any other module code,
+// unlike dotenv.config() which is a function call and gets hoisted-over by other imports.
+import "dotenv/config";
+import { validateEnv } from "./config/env.js";
+validateEnv();
+
 import app from "./app.js";
 import dns from "dns";
 dns.setDefaultResultOrder("ipv4first");
@@ -7,22 +11,19 @@ dns.setDefaultResultOrder("ipv4first");
 const PORT = process.env.PORT;
 
 const server = app.listen(PORT, () => {
-  console.log(`Server Listening on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received");
 
+process.on("SIGTERM", () => {
   server.close(() => {
-    console.log("Server closed");
+    console.log("Server closed (SIGTERM)");
     process.exit(0);
   });
 });
 
 process.on("SIGINT", () => {
-  console.log("SIGINT received");
-
   server.close(() => {
-    console.log("Server closed");
+    console.log("Server closed (SIGINT)");
     process.exit(0);
   });
 });

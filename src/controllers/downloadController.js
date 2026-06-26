@@ -1,38 +1,56 @@
-// controllers/downloadController.js
+import ConversionLog from "../models/conversionLogs.js";
+import File from "../models/fileModel.js";
 import axios from "axios";
+import path from "path";
 
+// GET /download/:fileId
+// - Verifies file belongs to the requesting user
+// - Fetches from Supabase and streams to client
+// - Never exposes the raw Supabase URL to the frontend
 export const downloadFileController = async (req, res) => {
   try {
-    const fileUrl = req.query.url; // Get the Supabase URL from the query parameter
-    if (!fileUrl) {
-      return res.status(400).send("File URL is required.");
-    }
-    const allowedHost = process.env.SUPABASE_URL;
-
-    if (!fileUrl.startsWith(allowedHost)) {
-      return res.status(403).json({
-        message: "Invalid file URL",
-      });
+    const fileId = parseInt(req.params.fileId, 10);
+    if (isNaN(fileId)) {
+      return res.status(400).json({ success: false, message: "Invalid file ID." });
     }
 
-    // Fetch the file from Supabase as a stream
-    const response = await axios({
-      method: "GET",
-      url: fileUrl,
-      responseType: "stream",
+    // Find the conversion log for this file
+    const log = await ConversionLog.findOne({
+      where: { file_id: fileId },
+      include: [{ model: File, as: "File" }],
     });
 
-    // Get the filename from the URL
-    const fileName = fileUrl.split("/").pop();
+    if (!log) {
+      return res.status(404).json({ success: false, message: "File not found." });
+    }
 
-    // Set headers to tell the browser to download the file
-    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
-    res.setHeader("Content-Type", response.headers["content-type"]);
+    // Ownership check — user can only download their own files
+    if (log.File.user_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Access denied." });
+    }
 
-    // Pipe the file stream from Supabase to the user
+    if (log.status !== "completed" || !log.converted_file_url) {
+      return res.status(400).json({ success: false, message: "File is not ready for download." });
+    }
+
+    const fileUrl = log.converted_file_url;
+
+    // Validate it's still a Supabase URL (sanity check)
+    const supabaseHost = new URL(process.env.SUPABASE_URL).hostname;
+    const urlHost = new URL(fileUrl).hostname;
+    if (urlHost !== supabaseHost) {
+      return res.status(403).json({ success: false, message: "Invalid file source." });
+    }
+
+    // Stream file from Supabase to client
+    const response = await axios({ method: "GET", url: fileUrl, responseType: "stream" });
+
+    const fileName = path.basename(fileUrl);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
+
     response.data.pipe(res);
-  } catch (error) {
-    console.error("File download proxy error:", error);
-    res.status(500).send("Failed to download file.");
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Download failed." });
   }
 };

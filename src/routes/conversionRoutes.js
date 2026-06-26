@@ -1,12 +1,54 @@
 import express from "express";
-import {authMiddleware} from "../middlewares/authMiddleware.js";
+import { authMiddleware } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/uploadMiddleware.js";
-import { convertImage } from "../controllers/imageconversionController.js";
-import {documentConversionController} from "../controllers/documentController.js";
-import { mediaConversionController } from "../controllers/audiovideoController.js";
+import { validate } from "../middlewares/validateMiddleware.js";
+import { validateMagicBytes } from "../middlewares/magicBytesMiddleware.js";
+import { uploadLimiter } from "../middlewares/rateLimit.js";
+import { convertFile } from "../controllers/conversionController.js";
+import {
+  imageConversionSchema,
+  documentConversionSchema,
+  mediaConversionSchema,
+} from "../validations/conversionValidation.js";
+
 const router = express.Router();
 
-router.post("/image",authMiddleware,upload.single("file"),convertImage);
-router.post("/document",authMiddleware, upload.single("file"), documentConversionController);
-router.post("/media",authMiddleware, upload.single("file"),mediaConversionController);
+const setCategory = (category) => (req, res, next) => {
+  req.conversionCategory = category;
+  next();
+};
+
+router.post(
+  "/image",
+  authMiddleware,
+  uploadLimiter,           // max 20 uploads/hr
+  upload.single("file"),
+  validateMagicBytes,      // verify actual file content
+  validate(imageConversionSchema),
+  setCategory("image"),
+  convertFile
+);
+
+router.post(
+  "/document",
+  authMiddleware,
+  uploadLimiter,
+  upload.single("file"),
+  validateMagicBytes,
+  validate(documentConversionSchema),
+  setCategory("document"),
+  convertFile
+);
+
+router.post(
+  "/media",
+  authMiddleware,
+  uploadLimiter,
+  upload.single("file"),
+  validateMagicBytes,
+  validate(mediaConversionSchema),
+  setCategory("media"),
+  convertFile
+);
+
 export default router;

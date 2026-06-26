@@ -1,8 +1,9 @@
 import express from "express";
-import { getConversionStatus } from "../controllers/statusController.js";
-import {authMiddleware} from "../middlewares/authMiddleware.js";
+import { getStatus } from "../controllers/conversionController.js";
+import { authMiddleware } from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-router.get("/:jobId",authMiddleware, getConversionStatus);
+router.get("/:jobId", authMiddleware, getStatus);
 
 export default router;
