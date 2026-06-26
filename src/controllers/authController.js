@@ -1,128 +1,54 @@
-import User from "../models/userModel.js";
-import RefreshToken from "../models/refreshTokenModel.js";
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-} from "../utils/jwtUtils.js";
-import bcrypt from "bcrypt";
+import { authService } from "../services/authService.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js";
+import { userRepository } from "../repositories/userRepository.js";
 
-export const register = async (req, res) => {
-  const { username, password } = req.body;
+export const register = async (req, res, next) => {
   try {
-    const existingUser = await User.findOne({ where: { username } });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashedPassword });
-
-    const accessToken = generateAccessToken({
-      id: user.id,
-      username: user.username,
-    });
-    const refreshToken = generateRefreshToken({
-      id: user.id,
-      username: user.username,
-    });
-    await RefreshToken.create({
-      token: refreshToken,
-      user_id: user.id,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
-
-    res.status(201).json({
-      accessToken,
-      refreshToken,
-      user: { id: user.id, username: user.username },
-    });
+    const result = await authService.register(req.body);
+    res.status(201).json(result);
   } catch (err) {
-    console.error("SIGNUP ERROR:", err);
-
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-export const login = async (req, res) => {
-  const { username, password } = req.body;
+export const login = async (req, res, next) => {
   try {
-    const user = await User.findOne({ where: { username: username } });
-    if (!user) return res.status(401).json({ message: "Invalid Credentials" });
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: "Invalid Credentials" });
-
-    const accessToken = generateAccessToken({
-      id: user.id,
-      username: user.username,
-    });
-    const refreshToken = generateRefreshToken({
-      id: user.id,
-      username: user.username,
-    });
-    await RefreshToken.create({
-      token: refreshToken,
-      user_id: user.id,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    });
-    res.status(200).json({
-      accessToken,
-      refreshToken,
-      user: { id: user.id, username: user.username },
-    });
+    const result = await authService.login(req.body);
+    res.status(200).json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-export const refreshToken = async (req, res) => {
-  const { refreshToken } = req.body;
-  if (!refreshToken)
-    return res.status(401).json({ message: "No Refresh Token Provided" });
-
+export const refreshToken = async (req, res, next) => {
   try {
-    const storedToken = await RefreshToken.findOne({
-      where: {
-        token: refreshToken,
-      },
-    });
-
-    if (!storedToken) {
-      return res.status(403).json({
-        message: "Refresh token not found",
-      });
-    }
-
-    const decoded = verifyRefreshToken(refreshToken);
-
-    const newAccessToken = generateAccessToken({
-      id: decoded.id,
-      username: decoded.username,
-    });
-
-    res.json({
-      accessToken: newAccessToken,
-    });
+    const result = await authService.refresh(req.body.refreshToken);
+    res.json(result);
   } catch (err) {
-    res.status(403).json({ message: "Invalid Refresh Token" });
+    next(err);
   }
 };
-export const logout = async (req, res) => {
-  const { refreshToken } = req.body;
 
-  if (!refreshToken) {
-    return res.status(400).json({
-      message: "No Refresh Token Provided",
-    });
+export const logout = async (req, res, next) => {
+  try {
+    await authService.logout(req.body.refreshToken);
+    res.json({ message: "Logged out successfully" });
+  } catch (err) {
+    next(err);
   }
+};
 
-  await RefreshToken.destroy({
-    where: {
-      token: refreshToken,
-    },
-  });
+// Called after passport authenticates the Google user
+export const googleAuthCallback = async (req, res) => {
+  try {
+    const user = req.user;
+    const accessToken = generateAccessToken({ id: user.id, username: user.username });
+    const refreshToken = generateRefreshToken({ id: user.id, username: user.username });
+    await userRepository.saveRefreshToken(user.id, refreshToken);
 
-  return res.json({
-    message: "Logged out successfully",
-  });
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`;
+    res.redirect(redirectUrl);
+  } catch (err) {
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_failed`);
+  }
 };
