@@ -1,62 +1,37 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
 import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import os from "os";
 import axios from "axios";
-import sequelize from "../config/db.js";
 
 import { convertImageFile } from "../services/imageService.js";
 import { convertDocument } from "../services/documentService.js";
 import { convertMedia } from "../services/audiovideoService.js";
 import { uploadFileToSupabase } from "../services/storageService.js";
 
-import File from "../models/fileModel.js";
-import ConversionLog from "../models/conversionLogs.js";
-
+import { fileRepository } from "../repositories/fileRepository.js";
 import { safeDelete } from "../utils/fileUtils.js";
-
-const connection = new IORedis(process.env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableOfflineQueue: true,
-  ...(process.env.NODE_ENV !== "production"
-    ? {
-        tls: {
-          rejectUnauthorized: false,
-        },
-      }
-    : {}),
-});
+import logger from "../utils/logger.js";
+import { redisConnection as connection } from "../config/redis.js";
+import { CONVERSION_STATUS } from "../constants/index.js";
 
 function validateSupabaseUrl(fileUrl) {
   const url = new URL(fileUrl);
   const supabaseHost = new URL(process.env.SUPABASE_URL).hostname;
-
-  if (url.hostname !== supabaseHost) {
-    throw new Error("Only Supabase URLs are allowed");
-  }
+  if (url.hostname !== supabaseHost) throw new Error("Only Supabase URLs are allowed");
 }
 
 async function downloadFile(fileUrl) {
   validateSupabaseUrl(fileUrl);
-
   const response = await axios.get(encodeURI(fileUrl), {
     responseType: "arraybuffer",
     timeout: 30000,
-    headers: {
-      "User-Agent": "Mozilla/5.0",
-    },
+    headers: { "User-Agent": "Mozilla/5.0" },
   });
-
-  const tempPath = path.join(
-    os.tmpdir(),
-    `${Date.now()}-${path.basename(fileUrl)}`
-  );
-
+  const tempPath = path.join(os.tmpdir(), `${Date.now()}-${path.basename(fileUrl)}`);
   await fs.writeFile(tempPath, Buffer.from(response.data));
-
   return tempPath;
 }
 
@@ -66,123 +41,85 @@ const worker = new Worker(
     let filePath;
     let convertedFilePath;
 
-    try {
-      const {
-        fileUrl: inputFileUrl,
-        targetFormat,
-        userId,
-        originalName,
-        fileType,
-        fileSize,
-      } = job.data;
+    const { fileUrl: inputFileUrl, targetFormat, userId, originalName, fileType, fileSize } = job.data;
 
+    // Step 1: Create File record + ConversionLog (status: pending) atomically
+    const { file, log } = await fileRepository.createFileWithLog({
+      filename: originalName,
+      filetype: fileType,
+      filesize: fileSize,
+      userId,
+      jobId: job.id,
+      targetFormat,
+    });
+
+    try {
+      // Step 2: Mark processing
+      await fileRepository.updateLogStatus(log, CONVERSION_STATUS.PROCESSING);
+      logger.info({ jobId: job.id }, "Job processing started");
+
+      // Step 3: Download original from Supabase
       filePath = await downloadFile(inputFileUrl);
 
       if (!fsSync.existsSync("public/uploads")) {
         fsSync.mkdirSync("public/uploads", { recursive: true });
       }
 
-      // Convert file
+      // Step 4: Convert
       if (fileType.startsWith("image")) {
-        convertedFilePath = await convertImageFile(
-          filePath,
-          targetFormat
-        );
-      } else if (
-        fileType.startsWith("application") ||
-        fileType === "text/plain"
-      ) {
-        const { convertedPath } = await convertDocument(
-          filePath,
-          targetFormat
-        );
-
+        convertedFilePath = await convertImageFile(filePath, targetFormat);
+      } else if (fileType.startsWith("application") || fileType === "text/plain") {
+        const { convertedPath } = await convertDocument(filePath, targetFormat);
         convertedFilePath = convertedPath;
-      } else if (
-        fileType.startsWith("video") ||
-        fileType.startsWith("audio")
-      ) {
-        const { outputPath } = await convertMedia(
-          filePath,
-          targetFormat
-        );
-
+      } else if (fileType.startsWith("video") || fileType.startsWith("audio")) {
+        const { outputPath } = await convertMedia(filePath, targetFormat);
         convertedFilePath = outputPath;
       } else {
-        throw new Error("Unsupported file type for conversion");
+        throw new Error(`Unsupported file type: ${fileType}`);
       }
 
-      // Validate output exists
+      // Step 5: Validate output
       await fs.access(convertedFilePath);
 
-      // Upload to Supabase
-      const fileName = `${Date.now()}-${
-        path.parse(originalName).name
-      }.${targetFormat}`;
+      // Step 6: Upload converted file
+      const fileName = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
+      const fileUrl = await uploadFileToSupabase(convertedFilePath, fileName);
 
-      const fileUrl = await uploadFileToSupabase(
-        convertedFilePath,
-        fileName
-      );
+      // Step 7: Mark completed
+      await fileRepository.updateFileUrl(file, fileUrl);
+      await fileRepository.updateLogStatus(log, CONVERSION_STATUS.COMPLETED, {
+        converted_file_url: fileUrl,
+      });
 
-      // Save DB records
-      const transaction = await sequelize.transaction();
-
-      try {
-        const fileRecord = await File.create(
-          {
-            filename: originalName,
-            filetype: fileType,
-            filesize: fileSize,
-            user_id: userId,
-            converted_file_url: fileUrl,
-          },
-          { transaction }
-        );
-
-        await ConversionLog.create(
-          {
-            bullmq_job_id: String(job.id),
-            file_id: fileRecord.id,
-            target_format: targetFormat,
-            status: "completed",
-            converted_file_url: fileUrl,
-          },
-          { transaction }
-        );
-
-        await transaction.commit();
-      } catch (err) {
-        await transaction.rollback();
-        throw err;
-      }
-
-      return {
-        fileUrl,
-        userId,
-      };
+      logger.info({ jobId: job.id, fileUrl }, "Job completed");
+      return { fileUrl, userId };
+    } catch (err) {
+      logger.error({ jobId: job.id, err: err.message }, "Job failed");
+      await fileRepository
+        .updateLogStatus(log, CONVERSION_STATUS.FAILED, { error_message: err.message })
+        .catch(() => {});
+      throw err;
     } finally {
-      if (convertedFilePath) {
-        await safeDelete(convertedFilePath);
-      }
-
-      if (filePath) {
-        await safeDelete(filePath);
-      }
+      if (convertedFilePath) await safeDelete(convertedFilePath);
+      if (filePath) await safeDelete(filePath);
     }
   },
-  {
-    connection,
-    concurrency: 5,
-  }
+  { connection, concurrency: 5 }
 );
 
-worker.on("completed", (job) => {
-  console.log(`✅ Job ${job.id} completed`);
-});
+worker.on("completed", (job) => logger.info({ jobId: job.id }, "✅ BullMQ job completed"));
+worker.on("failed", (job, err) => logger.error({ jobId: job?.id, err: err.message }, "❌ BullMQ job failed"));
 
-worker.on("failed", (job, err) => {
-  console.log(`❌ Job ${job?.id} failed:`, err.message || err);
-});
+// Crash recovery
+async function recoverStaleLogs() {
+  try {
+    const [count] = await fileRepository.resetStaleProcessingLogs();
+    if (count > 0) logger.warn({ count }, "Recovered stale processing jobs");
+  } catch (err) {
+    logger.error({ err: err.message }, "Failed to recover stale logs");
+  }
+}
+
+recoverStaleLogs();
 
 export default worker;

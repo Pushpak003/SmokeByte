@@ -1,25 +1,15 @@
-import {Queue} from "bullmq";
-import IORedis from "ioredis";
+import { Queue } from "bullmq";
+import { redisConnection } from "../config/redis.js";
 
-const connection = new IORedis(process.env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableOfflineQueue: true,
-  ...(process.env.NODE_ENV !== "production"
-    ? {
-        tls: {
-          rejectUnauthorized: false,
-        },
-      }
-    : {}),
+export const conversionQueue = new Queue("conversionQueue", {
+  connection: redisConnection,
 });
 
-export const conversionQueue = new Queue("conversionQueue", {connection});
-
-export const addToQueue = async(jobData) =>{
-    return await conversionQueue.add("convert-file",jobData, {
-        attempts:3,
-        backoff: {type: "fixed", delay:2000},
-        removeOnComplete:true,
-        removeOnFail:true
-    });
+export const addToQueue = async (jobData) => {
+  return await conversionQueue.add("convert-file", jobData, {
+    attempts: 3,
+    backoff: { type: "fixed", delay: 2000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  });
 };
