@@ -7,8 +7,7 @@ export const conversionQueue = new Queue("conversionQueue", {
 
 export const addToQueue = async (jobData) => {
   return await conversionQueue.add("convert-file", jobData, {
-    attempts: 3,
-    backoff: { type: "fixed", delay: 2000 },
+    attempts: 1,          // No retries — temp file is deleted after first attempt
     removeOnComplete: true,
     removeOnFail: false,
   });
