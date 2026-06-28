@@ -1,10 +1,7 @@
 import "dotenv/config";
 import { Worker } from "bullmq";
 import fs from "fs/promises";
-import fsSync from "fs";
 import path from "path";
-import os from "os";
-import axios from "axios";
 
 import { convertImageFile } from "../services/imageService.js";
 import { convertDocument } from "../services/documentService.js";
@@ -17,100 +14,71 @@ import logger from "../utils/logger.js";
 import { redisConnection as connection } from "../config/redis.js";
 import { CONVERSION_STATUS } from "../constants/index.js";
 
-function validateSupabaseUrl(fileUrl) {
-  const url = new URL(fileUrl);
-  const supabaseHost = new URL(process.env.SUPABASE_URL).hostname;
-  if (url.hostname !== supabaseHost) throw new Error("Only Supabase URLs are allowed");
-}
-
-async function downloadFile(fileUrl) {
-  validateSupabaseUrl(fileUrl);
-  const response = await axios.get(encodeURI(fileUrl), {
-    responseType: "arraybuffer",
-    timeout: 30000,
-    headers: { "User-Agent": "Mozilla/5.0" },
-  });
-  const tempPath = path.join(os.tmpdir(), `${Date.now()}-${path.basename(fileUrl)}`);
-  await fs.writeFile(tempPath, Buffer.from(response.data));
-  return tempPath;
-}
-
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
-    let filePath;
     let convertedFilePath;
 
-    const { fileUrl: inputFileUrl, targetFormat, userId, originalName, fileType, fileSize } = job.data;
+    const { localPath, targetFormat, userId, originalName, fileType } = job.data;
 
-    // Step 1: Create File record + ConversionLog (status: pending) atomically
-    const { file, log } = await fileRepository.createFileWithLog({
-      filename: originalName,
-      filetype: fileType,
-      filesize: fileSize,
-      userId,
-      jobId: job.id,
-      targetFormat,
-    });
+    // Log already created by conversionService — just find it
+    const log = await fileRepository.findLogByJobId(job.id);
+    if (!log) throw new Error(`No ConversionLog found for jobId ${job.id}`);
+
+    const file = await fileRepository.findFileById(log.file_id);
 
     try {
-      // Step 2: Mark processing
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.PROCESSING);
-      logger.info({ jobId: job.id }, "Job processing started");
+      logger.info({ jobId: job.id, fileType, targetFormat }, "Job processing started");
 
-      // Step 3: Download original from Supabase
-      filePath = await downloadFile(inputFileUrl);
+      // Validate local file still exists
+      await fs.access(localPath);
 
-      if (!fsSync.existsSync("public/uploads")) {
-        fsSync.mkdirSync("public/uploads", { recursive: true });
-      }
-
-      // Step 4: Convert
+      // Convert directly from local temp file
       if (fileType.startsWith("image")) {
-        convertedFilePath = await convertImageFile(filePath, targetFormat);
+        convertedFilePath = await convertImageFile(localPath, targetFormat);
       } else if (fileType.startsWith("application") || fileType === "text/plain") {
-        const { convertedPath } = await convertDocument(filePath, targetFormat);
+        const { convertedPath } = await convertDocument(localPath, targetFormat);
         convertedFilePath = convertedPath;
       } else if (fileType.startsWith("video") || fileType.startsWith("audio")) {
-        const { outputPath } = await convertMedia(filePath, targetFormat);
+        const { outputPath } = await convertMedia(localPath, targetFormat);
         convertedFilePath = outputPath;
       } else {
         throw new Error(`Unsupported file type: ${fileType}`);
       }
 
-      // Step 5: Validate output
       await fs.access(convertedFilePath);
 
-      // Step 6: Upload converted file
-      const fileName = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
-      const fileUrl = await uploadFileToSupabase(convertedFilePath, fileName);
+      // Upload only the converted file
+      const outName  = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
+      const fileUrl  = await uploadFileToSupabase(convertedFilePath, outName);
 
-      // Step 7: Mark completed
       await fileRepository.updateFileUrl(file, fileUrl);
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.COMPLETED, {
         converted_file_url: fileUrl,
       });
 
-      logger.info({ jobId: job.id, fileUrl }, "Job completed");
+      logger.info({ jobId: job.id }, "✅ Job completed");
       return { fileUrl, userId };
     } catch (err) {
-      logger.error({ jobId: job.id, err: err.message }, "Job failed");
+      logger.error({ jobId: job.id, err: err.message }, "❌ Job failed");
       await fileRepository
         .updateLogStatus(log, CONVERSION_STATUS.FAILED, { error_message: err.message })
         .catch(() => {});
       throw err;
     } finally {
       if (convertedFilePath) await safeDelete(convertedFilePath);
-      if (filePath) await safeDelete(filePath);
+      if (localPath) await safeDelete(localPath).catch(() => {});
     }
   },
   { connection, concurrency: 5 }
 );
 
-worker.on("completed", (job) => logger.info({ jobId: job.id }, "✅ BullMQ job completed"));
-worker.on("failed", (job, err) => logger.error({ jobId: job?.id, err: err.message }, "❌ BullMQ job failed"));
+worker.on("completed", (job) => logger.info({ jobId: job.id }, "✅ BullMQ completed"));
+worker.on("failed", (job, err) =>
+  logger.error({ jobId: job?.id, err: err.message }, "❌ BullMQ failed")
+);
 
-// Crash recovery
 async function recoverStaleLogs() {
   try {
     const [count] = await fileRepository.resetStaleProcessingLogs();

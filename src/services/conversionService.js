@@ -1,5 +1,4 @@
 import { addToQueue } from "../jobs/conversionQueue.js";
-import { uploadFileToSupabase } from "./storageService.js";
 import { fileRepository } from "../repositories/fileRepository.js";
 import {
   ALLOWED_IMAGE_FORMATS,
@@ -7,19 +6,19 @@ import {
   ALLOWED_MEDIA_FORMATS,
   CONVERSION_STATUS,
 } from "../constants/index.js";
-import fs from "fs";
+import File from "../models/fileModel.js";
 
-// Maps file mimetype category to its allowed formats
 const FORMAT_MAP = {
-  image: ALLOWED_IMAGE_FORMATS,
+  image:    ALLOWED_IMAGE_FORMATS,
   document: ALLOWED_DOCUMENT_FORMATS,
-  media: ALLOWED_MEDIA_FORMATS,
+  media:    ALLOWED_MEDIA_FORMATS,
 };
 
 export const conversionService = {
   async queueConversion({ file, targetFormat, userId, category }) {
     const allowed = FORMAT_MAP[category];
-    if (!allowed) throw Object.assign(new Error("Invalid conversion category"), { statusCode: 400 });
+    if (!allowed)
+      throw Object.assign(new Error("Invalid conversion category"), { statusCode: 400 });
 
     const fmt = targetFormat?.toLowerCase();
     if (!allowed.includes(fmt)) {
@@ -29,22 +28,26 @@ export const conversionService = {
       );
     }
 
-    // Upload original file to Supabase
-    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, "");
-    const fileName = `${Date.now()}-${cleanName}`;
-    const fileUrl = await uploadFileToSupabase(file.path, fileName);
-
-    // Remove local temp file
-    fs.unlinkSync(file.path);
-
-    // Add to BullMQ queue
+    // Step 1: Queue the job first to get a jobId
     const job = await addToQueue({
-      fileUrl,
+      localPath:    file.path,
       targetFormat: fmt,
       userId,
       originalName: file.originalname,
-      fileType: file.mimetype,
-      fileSize: file.size,
+      fileType:     file.mimetype,
+      fileSize:     file.size,
+    });
+
+    // Step 2: Create File + ConversionLog immediately with status "pending"
+    // KEY FIX: This happens in the controller (before response) so when
+    // frontend polls /status/:jobId, the log already exists — no 404.
+    await fileRepository.createFileWithLog({
+      filename:     file.originalname,
+      filetype:     file.mimetype,
+      filesize:     file.size,
+      userId,
+      jobId:        job.id,
+      targetFormat: fmt,
     });
 
     return { jobId: job.id };
@@ -55,8 +58,18 @@ export const conversionService = {
     if (!log) return null;
 
     const result = { status: log.status, jobId };
-    if (log.status === CONVERSION_STATUS.COMPLETED) result.fileUrl = log.converted_file_url;
-    if (log.status === CONVERSION_STATUS.FAILED) result.error = log.error_message || "Conversion failed";
+
+    if (log.status === CONVERSION_STATUS.COMPLETED) {
+      result.fileId       = log.file_id;
+      result.targetFormat = log.target_format;
+      const file          = await File.findByPk(log.file_id, { attributes: ["filename"] });
+      result.filename     = file?.filename || "";
+    }
+
+    if (log.status === CONVERSION_STATUS.FAILED) {
+      result.error = log.error_message || "Conversion failed";
+    }
+
     return result;
   },
 };
