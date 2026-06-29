@@ -1,5 +1,4 @@
-// Call validateEnv() at the very top of server.js — before any imports that touch DB/Redis.
-// Missing var = process exits immediately with a clear message. No silent failures.
+
 
 const REQUIRED_VARS = [
   "PORT",
