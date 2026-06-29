@@ -1,5 +1,4 @@
-// "import dotenv/config" is a static import — it runs before any other module code,
-// unlike dotenv.config() which is a function call and gets hoisted-over by other imports.
+
 import "dotenv/config";
 import { validateEnv } from "./config/env.js";
 validateEnv();
