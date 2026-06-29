@@ -1,5 +1,7 @@
 import { addToQueue } from "../jobs/conversionQueue.js";
 import { fileRepository } from "../repositories/fileRepository.js";
+import { uploadFileToSupabase } from "./storageService.js";
+import { safeDelete } from "../utils/fileUtils.js";
 import {
   ALLOWED_IMAGE_FORMATS,
   ALLOWED_DOCUMENT_FORMATS,
@@ -28,9 +30,18 @@ export const conversionService = {
       );
     }
 
-    // Step 1: Queue the job first to get a jobId
+    // Step 1 — Upload original file to Supabase
+    // This replaces the old localPath approach so the worker can run
+    // in a separate container with no shared filesystem.
+    const originalName = `originals/${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
+    const originalUrl  = await uploadFileToSupabase(file.path, originalName);
+
+    // Step 2 — Delete local temp file — no longer needed
+    await safeDelete(file.path);
+
+    // Step 3 — Queue job with Supabase URL instead of local path
     const job = await addToQueue({
-      localPath:    file.path,
+      originalUrl,                   // ← worker downloads this
       targetFormat: fmt,
       userId,
       originalName: file.originalname,
@@ -38,9 +49,7 @@ export const conversionService = {
       fileSize:     file.size,
     });
 
-    // Step 2: Create File + ConversionLog immediately with status "pending"
-    // KEY FIX: This happens in the controller (before response) so when
-    // frontend polls /status/:jobId, the log already exists — no 404.
+    // Step 4 — Create File + ConversionLog with status "pending"
     await fileRepository.createFileWithLog({
       filename:     file.originalname,
       filetype:     file.mimetype,

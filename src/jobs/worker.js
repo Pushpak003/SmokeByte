@@ -6,7 +6,7 @@ import path from "path";
 import { convertImageFile } from "../services/imageService.js";
 import { convertDocument } from "../services/documentService.js";
 import { convertMedia } from "../services/audiovideoService.js";
-import { uploadFileToSupabase } from "../services/storageService.js";
+import { uploadFileToSupabase, downloadFromSupabase } from "../services/storageService.js";
 
 import { fileRepository } from "../repositories/fileRepository.js";
 import { safeDelete } from "../utils/fileUtils.js";
@@ -17,11 +17,12 @@ import { CONVERSION_STATUS } from "../constants/index.js";
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
+    let localPath;        // downloaded original — must be cleaned up
     let convertedFilePath;
 
-    const { localPath, targetFormat, userId, originalName, fileType } = job.data;
+    // originalUrl replaces the old localPath — worker downloads it first
+    const { originalUrl, targetFormat, userId, originalName, fileType } = job.data;
 
-    // Log already created by conversionService — just find it
     const log = await fileRepository.findLogByJobId(job.id);
     if (!log) throw new Error(`No ConversionLog found for jobId ${job.id}`);
 
@@ -31,10 +32,11 @@ const worker = new Worker(
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.PROCESSING);
       logger.info({ jobId: job.id, fileType, targetFormat }, "Job processing started");
 
-      // Validate local file still exists
-      await fs.access(localPath);
+      // Step 1 — Download original from Supabase to container's /tmp
+      localPath = await downloadFromSupabase(originalUrl, originalName);
+      await fs.access(localPath); // sanity check
 
-      // Convert directly from local temp file
+      // Step 2 — Convert
       if (fileType.startsWith("image")) {
         convertedFilePath = await convertImageFile(localPath, targetFormat);
       } else if (fileType.startsWith("application") || fileType === "text/plain") {
@@ -49,10 +51,11 @@ const worker = new Worker(
 
       await fs.access(convertedFilePath);
 
-      // Upload only the converted file
-      const outName  = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
-      const fileUrl  = await uploadFileToSupabase(convertedFilePath, outName);
+      // Step 3 — Upload converted file to Supabase
+      const outName = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
+      const fileUrl = await uploadFileToSupabase(convertedFilePath, outName);
 
+      // Step 4 — Update DB
       await fileRepository.updateFileUrl(file, fileUrl);
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.COMPLETED, {
         converted_file_url: fileUrl,
@@ -60,15 +63,18 @@ const worker = new Worker(
 
       logger.info({ jobId: job.id }, "✅ Job completed");
       return { fileUrl, userId };
+
     } catch (err) {
       logger.error({ jobId: job.id, err: err.message }, "❌ Job failed");
       await fileRepository
         .updateLogStatus(log, CONVERSION_STATUS.FAILED, { error_message: err.message })
         .catch(() => {});
       throw err;
+
     } finally {
+      // Always clean up both temp files
       if (convertedFilePath) await safeDelete(convertedFilePath);
-      if (localPath) await safeDelete(localPath).catch(() => {});
+      if (localPath)         await safeDelete(localPath);
     }
   },
   { connection, concurrency: 5 }
