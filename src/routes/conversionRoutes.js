@@ -2,7 +2,7 @@ import express from "express";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/uploadMiddleware.js";
 import { validate } from "../middlewares/validateMiddleware.js";
-import { validateMagicBytes } from "../middlewares/magicBytesMiddleware.js";
+import { validateMagicBytes } from "../middlewares/magicbytesMiddleware.js";
 import { uploadLimiter } from "../middlewares/rateLimit.js";
 import { convertFile } from "../controllers/conversionController.js";
 import {
