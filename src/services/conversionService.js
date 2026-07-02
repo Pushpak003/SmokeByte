@@ -31,17 +31,26 @@ export const conversionService = {
     }
 
     // Step 1 — Upload original file to Supabase
-    // This replaces the old localPath approach so the worker can run
-    // in a separate container with no shared filesystem.
     const originalName = `originals/${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
     const originalUrl  = await uploadFileToSupabase(file.path, originalName);
 
-    // Step 2 — Delete local temp file — no longer needed
+    // Step 2 — Delete local temp file
     await safeDelete(file.path);
 
-    // Step 3 — Queue job with Supabase URL instead of local path
+    // Step 3 — DB mein pehle record banao (placeholder jobId)
+    // Race condition fix: ConversionLog pehle banta hai, phir queue mein job jaati hai
+    const { file: dbFile, log } = await fileRepository.createFileWithLog({
+      filename:     file.originalname,
+      filetype:     file.mimetype,
+      filesize:     file.size,
+      userId,
+      jobId:        "pending",   // placeholder — real jobId neeche update hoga
+      targetFormat: fmt,
+    });
+
+    // Step 4 — Ab queue mein daalo
     const job = await addToQueue({
-      originalUrl,                   // ← worker downloads this
+      originalUrl,
       targetFormat: fmt,
       userId,
       originalName: file.originalname,
@@ -49,15 +58,8 @@ export const conversionService = {
       fileSize:     file.size,
     });
 
-    // Step 4 — Create File + ConversionLog with status "pending"
-    await fileRepository.createFileWithLog({
-      filename:     file.originalname,
-      filetype:     file.mimetype,
-      filesize:     file.size,
-      userId,
-      jobId:        job.id,
-      targetFormat: fmt,
-    });
+    // Step 5 — Real BullMQ job ID se update karo
+    await log.update({ bullmq_job_id: String(job.id) });
 
     return { jobId: job.id };
   },
