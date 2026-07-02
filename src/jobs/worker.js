@@ -1,4 +1,5 @@
 import "dotenv/config";
+import http from "http";
 import { Worker } from "bullmq";
 import fs from "fs/promises";
 import path from "path";
@@ -14,13 +15,21 @@ import logger from "../utils/logger.js";
 import { redisConnection as connection } from "../config/redis.js";
 import { CONVERSION_STATUS } from "../constants/index.js";
 
+// ── Dummy HTTP server — Render Web Service ke liye zaruri ─────────────────────
+// Worker ko free tier pe deploy karne ke liye Web Service use karna padta hai
+// Background Worker paid hai — yeh dummy server Render ka health check pass karta hai
+const PORT = process.env.PORT || 3001;
+http.createServer((_, res) => res.writeHead(200).end("worker ok")).listen(PORT, () => {
+  logger.info({ port: PORT }, "Worker health server listening");
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 const worker = new Worker(
   "conversionQueue",
   async (job) => {
-    let localPath;        // downloaded original — must be cleaned up
+    let localPath;
     let convertedFilePath;
 
-    // originalUrl replaces the old localPath — worker downloads it first
     const { originalUrl, targetFormat, userId, originalName, fileType } = job.data;
 
     const log = await fileRepository.findLogByJobId(job.id);
@@ -32,11 +41,11 @@ const worker = new Worker(
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.PROCESSING);
       logger.info({ jobId: job.id, fileType, targetFormat }, "Job processing started");
 
-      // Step 1 — Download original from Supabase to container's /tmp
+      // Download original from Supabase to container /tmp
       localPath = await downloadFromSupabase(originalUrl, originalName);
-      await fs.access(localPath); // sanity check
+      await fs.access(localPath);
 
-      // Step 2 — Convert
+      // Convert
       if (fileType.startsWith("image")) {
         convertedFilePath = await convertImageFile(localPath, targetFormat);
       } else if (fileType.startsWith("application") || fileType === "text/plain") {
@@ -51,11 +60,10 @@ const worker = new Worker(
 
       await fs.access(convertedFilePath);
 
-      // Step 3 — Upload converted file to Supabase
+      // Upload converted file to Supabase
       const outName = `${Date.now()}-${path.parse(originalName).name}.${targetFormat}`;
       const fileUrl = await uploadFileToSupabase(convertedFilePath, outName);
 
-      // Step 4 — Update DB
       await fileRepository.updateFileUrl(file, fileUrl);
       await fileRepository.updateLogStatus(log, CONVERSION_STATUS.COMPLETED, {
         converted_file_url: fileUrl,
@@ -72,9 +80,8 @@ const worker = new Worker(
       throw err;
 
     } finally {
-      // Always clean up both temp files
       if (convertedFilePath) await safeDelete(convertedFilePath);
-      if (localPath)         await safeDelete(localPath);
+      if (localPath) await safeDelete(localPath).catch(() => {});
     }
   },
   { connection, concurrency: 5 }
